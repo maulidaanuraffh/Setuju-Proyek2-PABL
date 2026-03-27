@@ -33,6 +33,7 @@ typedef struct {
     char keyword_terakhir[256];
 } TextEditor;
 
-
+void  init_editor(TextEditor *ed);
+void  bebaskan_buffer(TextEditor *ed);
 
 #endif
