@@ -1,0 +1,10 @@
+# Build artifacts
+*.exe
+*.o
+*.obj
+
+# VS Code personal settings
+.vscode/
+
+# Windows thumbnail cache
+Thumbs.db
