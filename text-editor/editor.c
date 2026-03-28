@@ -83,3 +83,30 @@ int insert_baris(TextEditor *ed, int posisi, const char *isi) {
 
     return 0;
 }
+
+int delete_baris(TextEditor *ed, int posisi) {
+    int i;
+    if (ed->jumlah_baris == 0) {
+        printf("Dokumen sudah kosong.\n");
+        return -1;
+    }
+    if (posisi < 0 || posisi >= ed->jumlah_baris) {
+        printf("Nomor baris tidak valid: %d\n", posisi + 1);
+        return -1;
+    }
+
+    free(ed->buffer[posisi]);
+    ed->buffer[posisi] = NULL;
+
+    for (i = posisi; i < ed->jumlah_baris - 1; i++)
+    ed->buffer[i] = ed->buffer[i + 1];
+    ed->buffer[ed->jumlah_baris - 1] = NULL;
+    ed->jumlah_baris--;
+    ed->is_modified = 1;
+
+    if (ed->kursor_baris >= ed->jumlah_baris && ed->kursor_baris > 0)
+    ed->kursor_baris = ed->jumlah_baris - 1;
+    ed->kursor_kolom = 0;
+
+    return 0;
+}
