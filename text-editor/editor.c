@@ -206,3 +206,26 @@ int find_teks(TextEditor *ed, const char *keyword) {
 
     return ed->jumlah_hasil;
 }
+
+void find_next(TextEditor *ed) {
+    HasilCari *h;
+
+    if (ed->jumlah_hasil == 0) {
+        printf("Tidak ada hasil pencarian aktif. Gunakan fitur find text dulu.\n");
+        return;
+    }
+
+    ed->index_cari++; // maju ke hasil berikutnya
+    // jika sdh sampai hasil terakhir, balik lagi ke hasil pertama
+    if (ed->index_cari >= ed->jumlah_hasil) { 
+        ed->index_cari = 0;
+    }
+    // ambil koordinat dari array hasil_cari berdasarkan indeks
+    h = &ed->hasil_cari[ed->index_cari];
+    ed->kursor_baris = h->baris;
+    ed->kursor_kolom = h->kolom;
+    // menampilkan informasi urutan temuan
+    printf("Kemunculan %d/%d: baris %d, kolom %d\n",
+        ed->index_cari + 1, ed->jumlah_hasil, // ditambah 1 krn tampilan untuk user dimulai dari 1 bkn 0
+        h->baris + 1, h->kolom + 1);
+}
