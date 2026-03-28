@@ -92,3 +92,115 @@ int open_file(TextEditor *ed, const char *path) {
     printf("File \"%s\" dibuka (%d baris).\n", ed->filename, n);
     return 0;
 }
+
+/*   save_file   */
+
+int save_file(TextEditor *ed) {
+    char path_baru[MAX_PATH];
+
+    if (strlen(ed->filepath) == 0) {
+        /* belum punya path — minta dari user */
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Nama file baru (misal: catatan.txt): ");
+        fflush(stdout);
+
+        if (baca_baris_aman(path_baru, sizeof(path_baru)) <= 0) {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return -1;
+        }
+        ed->mode = MODE_PERINTAH;
+        return save_as(ed, path_baru);
+    }
+
+    return save_as(ed, ed->filepath);
+}
+
+/*    save_as()   */
+
+int save_as(TextEditor *ed, const char *path) {
+    FILE *fp;
+    int   i;
+    char *ptr;
+    char  konfirmasi[8];
+
+    if (path == NULL || strlen(path) == 0) {
+        printf("Path tidak boleh kosong.\n");
+        return -1;
+    }
+
+    /* FIX: konfirmasi overwrite jika file sudah ada dan path berbeda */
+    if (file_ada(path) && strcmp(path, ed->filepath) != 0) {
+        printf("File \"%s\" sudah ada. Timpa? (ya/tidak): ", path);
+        fflush(stdout);
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0
+            || strcmp(konfirmasi, "ya") != 0) {
+            printf("Dibatalkan.\n");
+            return -1;
+        }
+    }
+
+    fp = fopen(path, "w");
+    if (fp == NULL) {
+        printf("Error: tidak bisa menulis ke \"%s\".\n", path);
+        return -1;
+    }
+
+    for (i = 0; i < ed->jumlah_baris; i++) {
+        /* FIX: hanya tulis \n jika buffer[i] valid */
+        if (ed->buffer[i] != NULL) {
+            fputs(ed->buffer[i], fp);
+            fputc('\n', fp);
+        }
+    }
+
+    fclose(fp);
+
+    strncpy(ed->filepath, path, MAX_PATH - 1);
+    ed->filepath[MAX_PATH - 1] = '\0';
+
+    ptr = ambil_nama_file(path);
+    strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
+    ed->filename[MAX_FILENAME - 1] = '\0';
+
+    ed->is_modified = 0;
+    printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
+    return 0;
+}
+
+/*   delete_file   */
+
+int delete_file(TextEditor *ed) {
+    char konfirmasi[8];
+
+    if (strlen(ed->filepath) == 0) {
+        printf("Tidak ada file yang terbuka.\n");
+        return -1;
+    }
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Hapus \"%s\" dari disk? (ketik 'ya' untuk konfirmasi): ",
+           ed->filename);
+    fflush(stdout);
+
+    if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0
+        || strcmp(konfirmasi, "ya") != 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return -1;
+    }
+    ed->mode = MODE_PERINTAH;
+
+    if (remove(ed->filepath) != 0) {
+        printf("Error: gagal menghapus \"%s\".\n", ed->filepath);
+        return -1;
+    }
+
+    printf("File \"%s\" berhasil dihapus.\n", ed->filename);
+    bebaskan_buffer(ed);
+    ed->filepath[0] = '\0';
+    ed->filename[0] = '\0';
+    return 0;
+}
