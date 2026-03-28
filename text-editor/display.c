@@ -66,7 +66,7 @@ int edit_baris_inline(char *buf, int max, const char *isi_lama) {
 
     len = (int)strlen(buf);
 
-    /* Enter kosong = batalkan, pertahankan isi lama */
+    /* Enter kosong=batalkan, pertahankan isi lama */
     if (len == 0) {
         if (isi_lama) strncpy(buf, isi_lama, max - 1);
         buf[max - 1] = '\0';
