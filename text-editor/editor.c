@@ -110,3 +110,27 @@ int delete_baris(TextEditor *ed, int posisi) {
 
     return 0;
 }
+
+int insert_karakter(TextEditor *ed, int baris, int kolom, char c) {
+    char *buf, *tmp;
+    size_t len;
+
+    if (baris < 0 || baris >= ed->jumlah_baris) return -1;
+    buf = ed->buffer[baris];
+    len = strlen(buf);
+    if (kolom < 0 || kolom > (int)len) return -1;
+
+    tmp = (char *)realloc(buf, len + 2);
+    if (tmp == NULL) { 
+        fprintf(stderr, "Error: realloc gagal.\n"); 
+        return -1; 
+    }
+    ed->buffer[baris] = tmp;
+
+    memmove(&tmp[kolom + 1], &tmp[kolom], len - kolom + 1);
+    tmp[kolom] = c;
+
+    ed->is_modified = 1;
+    ed->kursor_kolom = kolom + 1;
+    return 0;
+}

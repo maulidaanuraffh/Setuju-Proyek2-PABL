@@ -42,5 +42,6 @@ void bebaskan_buffer(TextEditor *ed);
 char *alokasi_baris(const char *teks);
 int insert_baris(TextEditor *ed, int posisi, const char *isi);
 int delete_baris(TextEditor *ed, int posisi);
+int insert_karakter(TextEditor *ed, int baris, int kolom, char c);
 
 #endif
