@@ -187,7 +187,7 @@ void tampilkan_menu(const TextEditor *ed) {
     fflush(stdout);
 }
 
-/* ── render_hasil_cari() ───────────────────────────────────── */
+/*   render_hasil_cari()   */
 /* Tampilkan tabel semua posisi kemunculan keyword */
 void render_hasil_cari(const TextEditor *ed) {
     int i;
