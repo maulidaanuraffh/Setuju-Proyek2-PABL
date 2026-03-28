@@ -28,3 +28,14 @@ char *ambil_nama_file(const char *path){
 
     return terakhir + 1;
 }
+
+/*   file_ada()   */
+
+int file_ada(const char *path) {
+    FILE *fp;
+    if (path == NULL || strlen(path) == 0) return 0;
+    fp = fopen(path, "r");
+    if (fp == NULL) return 0;
+    fclose(fp);
+    return 1;
+}
