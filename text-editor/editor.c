@@ -160,3 +160,49 @@ int delete_karakter(TextEditor *ed, int baris, int kolom) {
 
     return -1;
 }
+
+int find_teks(TextEditor *ed, const char *keyword) {
+    int i;
+    size_t klen;
+    char *ptr, *baris;
+
+    // utk reset status pencarian sblmnya
+    ed->jumlah_hasil = 0; // menghapus jml temuan sblmnya
+    ed->index_cari = 0; // mengatur ulang navigasi pencarian
+    ed->keyword_terakhir[0] = '\0'; // mengosongkan memori kata kunci terakhir
+
+    // jika keyword yg dicari tidak ada, pencarian berhenti
+    if (keyword == NULL || strlen(keyword) == 0) return 0;
+
+    // menyimpan keyword ke memori utk fitur find next nanti
+    klen = strlen(keyword); 
+    strncpy(ed->keyword_terakhir, keyword, sizeof(ed->keyword_terakhir) - 1);
+    ed->keyword_terakhir[sizeof(ed->keyword_terakhir) - 1] = '\0';
+    
+    // menelusuri baris demi baris
+    for (i = 0; i < ed->jumlah_baris && ed->jumlah_hasil < MAX_HASIL; i++) {
+        baris = ed->buffer[i];
+        if (baris == NULL) continue; // skip baris kosong
+
+        ptr = baris;
+        // mencari keyword di baris yg sedang aktif
+        while ((ptr = strstr(ptr, keyword)) != NULL) {
+            if (ed->jumlah_hasil >= MAX_HASIL) break; // berhenti jika penampung hasil pencarian sdh penuh
+            // menyimpan posisi baris dan kolom keyword yg ditemukan
+            ed->hasil_cari[ed->jumlah_hasil].baris = i;
+            ed->hasil_cari[ed->jumlah_hasil].kolom = (int)(ptr - baris);
+            ed->jumlah_hasil++;
+            ptr += klen; // geser pointer lanjut mencari kemunculan kata yang sama di baris yang sama
+        }
+    }
+    // ketika keyword ditemukan kursor pindah ke lokasi pertama
+    if (ed->jumlah_hasil > 0) {
+        ed->kursor_baris = ed->hasil_cari[0].baris;
+        ed->kursor_kolom = ed->hasil_cari[0].kolom;
+        printf("Ditemukan %d kemunculan \"%s\".\n", ed->jumlah_hasil, keyword);
+    } else {
+        printf("Teks \"%s\" tidak ditemukan.\n", keyword);
+    }
+
+    return ed->jumlah_hasil;
+}

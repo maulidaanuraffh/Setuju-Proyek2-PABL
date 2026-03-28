@@ -45,4 +45,6 @@ int delete_baris(TextEditor *ed, int posisi);
 int insert_karakter(TextEditor *ed, int baris, int kolom, char c);
 int delete_karakter(TextEditor *ed, int baris, int kolom);
 
+int find_teks(TextEditor *ed, const char *keyword);
+
 #endif
