@@ -40,5 +40,6 @@ typedef struct {
 void init_editor(TextEditor *ed);
 void bebaskan_buffer(TextEditor *ed);
 char *alokasi_baris(const char *teks);
+int insert_baris(TextEditor *ed, int posisi, const char *isi);
 
 #endif

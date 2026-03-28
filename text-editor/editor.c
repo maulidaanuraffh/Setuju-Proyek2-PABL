@@ -55,3 +55,31 @@ char *alokasi_baris(const char *teks) {
     strcpy(hasil, teks);
     return hasil;
 }
+
+int insert_baris(TextEditor *ed, int posisi, const char *isi) {
+    int   i;
+    char *baris_baru;
+
+    if (ed->jumlah_baris >= MAX_BARIS) {
+        printf("Dokumen penuh (%d baris maksimum).\n", MAX_BARIS);
+        return -1;
+    }
+    if (posisi < 0 || posisi > ed->jumlah_baris) {
+        printf("Posisi tidak valid: %d\n", posisi);
+        return -1;
+    }
+
+    baris_baru = alokasi_baris(isi ? isi : "");
+    if (baris_baru == NULL) return -1;
+
+    // geser dari bawah ke atas 
+    for (i = ed->jumlah_baris; i > posisi; i--)
+    ed->buffer[i] = ed->buffer[i - 1];
+    ed->buffer[posisi] = baris_baru;
+    ed->jumlah_baris++;
+    ed->is_modified  = 1;
+    ed->kursor_baris = posisi;
+    ed->kursor_kolom = 0;
+
+    return 0;
+}
