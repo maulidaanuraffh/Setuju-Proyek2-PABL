@@ -103,8 +103,23 @@ int main() {
             printf("Detail lokasi temuan:\n");
             for(int j = 0; j < total; j++) {
                 printf(" - Temuan %d: Baris %d, Kolom %d\n",
-                    j + 1, ed.hasil_cari[j].baris, ed.hasil_cari[j].kolom);
+                    j + 1, ed.hasil_cari[j+1].baris, ed.hasil_cari[j+1].kolom);
             }
+        }
+    }
+
+    // --- TEST TAHAP 6: FIND NEXT ---
+    printf("\n----TEST FIND NEXT----\n");
+    if (ed.jumlah_hasil > 1) {
+        printf("\n---- TEST FIND NEXT ----\n");
+        printf("Tekan [Enter] untuk ke lokasi berikutnya, atau ketik 'q' lalu [Enter] untuk berhenti.\n");
+        
+        char loop_input[10];
+        while (fgets(loop_input, sizeof(loop_input), stdin)) {
+            if (loop_input[0] == 'q') break; // berhenti jika user ketik q
+            
+            find_next(&ed);
+            printf("Lanjut? (Enter/q): ");
         }
     }
 
