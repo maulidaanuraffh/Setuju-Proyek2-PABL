@@ -118,6 +118,7 @@ int save_file(TextEditor *ed) {
 }
 
 /*    save_as()   */
+
 int save_as(TextEditor *ed, const char *path) {
     FILE *fp;
     int   i;
@@ -165,5 +166,41 @@ int save_as(TextEditor *ed, const char *path) {
 
     ed->is_modified = 0;
     printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
+    return 0;
+}
+
+/*   delete_file   */
+
+int delete_file(TextEditor *ed) {
+    char konfirmasi[8];
+
+    if (strlen(ed->filepath) == 0) {
+        printf("Tidak ada file yang terbuka.\n");
+        return -1;
+    }
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Hapus \"%s\" dari disk? (ketik 'ya' untuk konfirmasi): ",
+           ed->filename);
+    fflush(stdout);
+
+    if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0
+        || strcmp(konfirmasi, "ya") != 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return -1;
+    }
+    ed->mode = MODE_PERINTAH;
+
+    if (remove(ed->filepath) != 0) {
+        printf("Error: gagal menghapus \"%s\".\n", ed->filepath);
+        return -1;
+    }
+
+    printf("File \"%s\" berhasil dihapus.\n", ed->filename);
+    bebaskan_buffer(ed);
+    ed->filepath[0] = '\0';
+    ed->filename[0] = '\0';
     return 0;
 }
