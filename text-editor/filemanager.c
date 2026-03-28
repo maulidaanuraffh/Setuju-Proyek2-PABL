@@ -96,7 +96,7 @@ int open_file(TextEditor *ed, const char *path) {
 /*   save_file   */
 
 int save_file(TextEditor *ed) {
-    char path_baru[ED_MAX_PATH];
+    char path_baru[MAX_PATH];
 
     if (strlen(ed->filepath) == 0) {
         /* belum punya path — minta dari user */
@@ -115,4 +115,55 @@ int save_file(TextEditor *ed) {
     }
 
     return save_as(ed, ed->filepath);
+}
+
+/*    save_as()   */
+int save_as(TextEditor *ed, const char *path) {
+    FILE *fp;
+    int   i;
+    char *ptr;
+    char  konfirmasi[8];
+
+    if (path == NULL || strlen(path) == 0) {
+        printf("Path tidak boleh kosong.\n");
+        return -1;
+    }
+
+    /* FIX: konfirmasi overwrite jika file sudah ada dan path berbeda */
+    if (file_ada(path) && strcmp(path, ed->filepath) != 0) {
+        printf("File \"%s\" sudah ada. Timpa? (ya/tidak): ", path);
+        fflush(stdout);
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0
+            || strcmp(konfirmasi, "ya") != 0) {
+            printf("Dibatalkan.\n");
+            return -1;
+        }
+    }
+
+    fp = fopen(path, "w");
+    if (fp == NULL) {
+        printf("Error: tidak bisa menulis ke \"%s\".\n", path);
+        return -1;
+    }
+
+    for (i = 0; i < ed->jumlah_baris; i++) {
+        /* FIX: hanya tulis \n jika buffer[i] valid */
+        if (ed->buffer[i] != NULL) {
+            fputs(ed->buffer[i], fp);
+            fputc('\n', fp);
+        }
+    }
+
+    fclose(fp);
+
+    strncpy(ed->filepath, path, MAX_PATH - 1);
+    ed->filepath[MAX_PATH - 1] = '\0';
+
+    ptr = ambil_nama_file(path);
+    strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
+    ed->filename[MAX_FILENAME - 1] = '\0';
+
+    ed->is_modified = 0;
+    printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
+    return 0;
 }
