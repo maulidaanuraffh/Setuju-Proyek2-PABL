@@ -92,3 +92,27 @@ int open_file(TextEditor *ed, const char *path) {
     printf("File \"%s\" dibuka (%d baris).\n", ed->filename, n);
     return 0;
 }
+
+/*   save_file   */
+
+int save_file(TextEditor *ed) {
+    char path_baru[ED_MAX_PATH];
+
+    if (strlen(ed->filepath) == 0) {
+        /* belum punya path — minta dari user */
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Nama file baru (misal: catatan.txt): ");
+        fflush(stdout);
+
+        if (baca_baris_aman(path_baru, sizeof(path_baru)) <= 0) {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return -1;
+        }
+        ed->mode = MODE_PERINTAH;
+        return save_as(ed, path_baru);
+    }
+
+    return save_as(ed, ed->filepath);
+}
