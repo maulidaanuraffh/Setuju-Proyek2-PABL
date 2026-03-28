@@ -76,3 +76,32 @@ int edit_baris_inline(char *buf, int max, const char *isi_lama) {
 
     return len;
 }
+
+/*   render_status_bar  ()   */
+void render_status_bar(const TextEditor *ed){
+    const char *nama =(strlen(ed->filename) > 0) ? ed->filename : "[Tanpa Nama]";
+    const char *ubah =ed->is_modified ? "[*]" : "";
+    const char *mode_str =(ed->mode == MODE_INPUT) ? " | INPUT MODE |" : "";
+
+    printf("%-80s\n", "________________________________________________________________________________");
+        printf(" %s%s  |  Baris: %d/%d  |  Kolom: %d%s\n",
+           ubah, nama,
+            ed->jumlah_baris > 0 ? ed->kursor_baris + 1 : 0,
+            ed->jumlah_baris,
+            ed->kursor_kolom,
+            mode_str);
+
+    /* tampilkan info pencarian jika ada hasil aktif */
+    if (ed->jumlah_hasil > 0 && strlen(ed->keyword_terakhir) > 0) {
+        printf(" Cari: \"%s\"  —  %d kemunculan  |  aktif: %d/%d "
+               "(baris %d, kolom %d)\n",
+                ed->keyword_terakhir,
+                ed->jumlah_hasil,
+                ed->index_cari + 1,
+                ed->jumlah_hasil,
+                ed->hasil_cari[ed->index_cari].baris + 1,
+                ed->hasil_cari[ed->index_cari].kolom + 1);
+    }
+
+    printf("%-80s\n", "________________________________________________________________________________");
+}
