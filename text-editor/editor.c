@@ -134,3 +134,29 @@ int insert_karakter(TextEditor *ed, int baris, int kolom, char c) {
     ed->kursor_kolom = kolom + 1;
     return 0;
 }
+
+int delete_karakter(TextEditor *ed, int baris, int kolom) {
+    char *buf, *tmp;
+    size_t len;
+    char *buf_atas, *gabung;
+    int i;
+
+    if (baris < 0 || baris >= ed->jumlah_baris) return -1;
+    buf = ed->buffer[baris];
+    len = strlen(buf);
+
+    // hapus karakter di tengah/akhir baris
+    if (kolom > 0 && kolom <= (int)len) {
+        // geser sisa karakter ke kiri untuk menimpa karakter yang dihapus
+        memmove(&buf[kolom - 1], &buf[kolom], len - kolom + 1);
+        // sesuaikan ukuran memori setelah karakter hilang
+        tmp = (char *)realloc(buf, len); 
+        if (tmp != NULL) ed->buffer[baris] = tmp;
+
+        ed->kursor_kolom = kolom - 1; 
+        ed->is_modified  = 1;
+        return 0;
+    }
+
+    return -1;
+}
