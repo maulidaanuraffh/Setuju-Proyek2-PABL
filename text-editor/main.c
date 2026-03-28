@@ -30,6 +30,24 @@ int main() {
     printf("baris 0: %s\n", ed.buffer[0]); // skrg jadi "sisipan tengah"
     printf("baris 1: %s\n", ed.buffer[1]); // "struktur data" 
 
+    // test insert_karakter
+    printf("\n----TEST INSERT KARAKTER----\n");
+    char input_c;
+    // coba insert di baris 0 paling depan
+    int target_baris = 0; 
+    int target_kolom = 0; 
+
+    printf("Ketik satu huruf untuk dimasukkan di paling awal: ");
+    scanf(" %c", &input_c); 
+
+    // panggil fungsi insert_karakter
+    if (insert_karakter(&ed, target_baris, target_kolom, input_c) == 0) {
+        printf("insert_karakter OK: jumlah_baris=%d\n", ed.jumlah_baris);
+        printf("Hasil di baris 0 sekarang: %s\n", ed.buffer[0]);
+    } else {
+        printf("insert_karakter GAGAL!\n");
+    }
+
     bebaskan_buffer(&ed);
     printf("bebaskan OK\n");
     return 0;
