@@ -33,9 +33,46 @@ int baca_baris_aman(char *buf, int max ){
         return -1;
     }
 
-    /* FIX: strip \r\n (Windows & Unix) */
     buf[strcspn(buf, "\r\n")] = '\0';
 
-    /* deteksi overflow: ada sisa di stdin */
     if ((int)strlen(buf) == max - 1) flush_stdin();
+
+     return (int)strlen(buf);
+}
+
+/*   edit_baris_inline()   */
+int edit_baris_inline(char *buf, int max, const char *isi_lama) {
+    int len;
+
+    if (buf == NULL || max <= 0) return -1;
+
+    /* tampilkan isi lama di baris */
+    printf("  Isi lama  : ");
+    if (isi_lama && strlen(isi_lama) > 0) {
+        printf("%s\n", isi_lama);
+    } else {
+        printf("(kosong)\n");
+    }
+    printf("  Isi baru  : ");
+    fflush(stdout);
+
+    if (fgets(buf, max, stdin) == NULL) {
+        buf[0] = '\0';
+        return -1;
+    }
+
+    buf[strcspn(buf, "\r\n")] = '\0';
+    if ((int)strlen(buf) == max - 1) flush_stdin();
+
+    len = (int)strlen(buf);
+
+    /* Enter kosong = batalkan, pertahankan isi lama */
+    if (len == 0) {
+        if (isi_lama) strncpy(buf, isi_lama, max - 1);
+        buf[max - 1] = '\0';
+        printf("  (tidak ada perubahan)\n");
+        return 0; /* 0 = tidak berubah, berbeda dari -1 = error */
+    }
+
+    return len;
 }
