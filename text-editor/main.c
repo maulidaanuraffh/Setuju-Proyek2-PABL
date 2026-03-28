@@ -87,6 +87,27 @@ int main() {
         printf("[%d]: %s\n", i, ed.buffer[i]);
     }
 
+    // test find_teks
+    printf("\n----PENCARIAN TEKS----\n");
+    printf("Masukkan kata yang ingin dicari: ");
+    if (fgets(input_buffer, sizeof(input_buffer), stdin)) {
+        input_buffer[strcspn(input_buffer, "\n")] = 0; // hapus newline
+        
+        int total = find_teks(&ed, input_buffer);
+        
+        if (total > 0) {
+            printf("Kursor otomatis pindah ke: Baris %d, Kolom %d\n", 
+                ed.kursor_baris, ed.kursor_kolom);
+            
+            // tampilkan semua lokasi jika lebih dari satu
+            printf("Detail lokasi temuan:\n");
+            for(int j = 0; j < total; j++) {
+                printf(" - Temuan %d: Baris %d, Kolom %d\n",
+                    j + 1, ed.hasil_cari[j].baris, ed.hasil_cari[j].kolom);
+            }
+        }
+    }
+
     bebaskan_buffer(&ed);
     printf("bebaskan OK\n");
     return 0;
