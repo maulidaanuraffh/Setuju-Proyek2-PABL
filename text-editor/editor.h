@@ -1,3 +1,7 @@
+/* ============================================================
+   editor.h 
+   Proyek 2 |  Maulida Nur Afifah  (017)
+ * ============================================================ */
 #ifndef EDITOR_H
 
 #define EDITOR_H
@@ -33,6 +37,9 @@ typedef struct {
     char keyword_terakhir[256];
 } TextEditor;
 
-
+void init_editor(TextEditor *ed);
+void bebaskan_buffer(TextEditor *ed);
+char *alokasi_baris(const char *teks);
+int insert_baris(TextEditor *ed, int posisi, const char *isi);
 
 #endif
