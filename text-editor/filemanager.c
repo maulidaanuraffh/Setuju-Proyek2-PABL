@@ -39,3 +39,56 @@ int file_ada(const char *path) {
     fclose(fp);
     return 1;
 }
+
+/*   open_file()   */
+
+int open_file(TextEditor *ed, const char *path) {
+    FILE *fp;
+    char  baris[MAX_INPUT];
+    char *ptr;
+    int   n = 0;
+
+    if (path == NULL || strlen(path) == 0) {
+        printf("Path tidak boleh kosong.\n");
+        return -1;
+    }
+
+    fp = fopen(path, "r");
+    if (fp == NULL) {
+        printf("Error: tidak bisa membuka \"%s\".\n", path);
+        return -1;
+    }
+
+    bebaskan_buffer(ed);
+
+    while (fgets(baris, sizeof(baris), fp) != NULL && n < MAX_BARIS) {
+        /* FIX: strip \r\n (Windows) maupun \n (Unix) */
+        baris[strcspn(baris, "\r\n")] = '\0';
+
+        ed->buffer[n] = alokasi_baris(baris);
+        if (ed->buffer[n] == NULL) {
+            fclose(fp);
+            ed->jumlah_baris = n;
+            bebaskan_buffer(ed);
+            printf("Error: kehabisan memori saat membuka file.\n");
+            return -1;
+        }
+        n++;
+    }
+
+    fclose(fp);
+    ed->jumlah_baris = n;
+    ed->is_modified  = 0;
+    ed->kursor_baris = 0;
+    ed->kursor_kolom = 0;
+
+    strncpy(ed->filepath, path, MAX_PATH - 1);
+    ed->filepath[MAX_PATH - 1] = '\0';
+
+    ptr = ambil_nama_file(path);
+    strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
+    ed->filename[MAX_FILENAME - 1] = '\0';
+
+    printf("File \"%s\" dibuka (%d baris).\n", ed->filename, n);
+    return 0;
+}
