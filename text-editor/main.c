@@ -184,6 +184,10 @@ int main() {
         printf("[%d]: %s\n", i + 1, ed.buffer[i]);
     }
 
+    // test word_count
+    printf("\n---- Menghitung Statistik Dokumen ----\n");
+    word_count(&ed);
+
     bebaskan_buffer(&ed);
     printf("bebaskan OK\n");
     return 0;
