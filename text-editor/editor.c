@@ -311,3 +311,39 @@ void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar h
     ed->index_cari = 0;
     ed->keyword_terakhir[0] = '\0';
 }
+
+void word_count(const TextEditor *ed) {
+    int i, j;
+    int total_kata = 0, total_char = 0, dalam_kata = 0;
+    unsigned char c;
+
+    for (i = 0; i < ed->jumlah_baris; i++) {
+        if (ed->buffer[i] == NULL) continue;
+        j = 0;
+        // membaca karakter satu per satu hingga bertemu null terminator
+        while ((c = (unsigned char)ed->buffer[i][j]) != '\0') {
+            total_char++; // menghitung setiap karakter termasuk spasi
+            // cek apakah karakter saat ini adalah pemisah (spasi atau tab)
+            if (c == ' ' || c == '\t') {
+                // spasi ini menandakan akhir dari satu kata
+                if (dalam_kata) { 
+                    total_kata++; 
+                    dalam_kata = 0; // reset status karena sekarang di luar kata
+                } 
+            } else { // jika karakter bukan spasi/tab, berarti skrg berada di dalam kata
+                dalam_kata = 1;
+            }
+            j++;
+        }
+        // penanganan akhir baris, baris berakhir dan masih dalam status di dalam kata maka dihitung sbg 1 kata terakhir di bais tsb
+        if (dalam_kata) { 
+            total_kata++; 
+            dalam_kata = 0; 
+        }
+    }
+
+    printf("Statistik dokumen:\n");
+    printf("  Jumlah baris    : %d\n", ed->jumlah_baris);
+    printf("  Jumlah kata     : %d\n", total_kata);
+    printf("  Jumlah karakter : %d\n", total_char);
+}
