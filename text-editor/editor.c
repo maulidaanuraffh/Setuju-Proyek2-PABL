@@ -81,6 +81,7 @@ int insert_baris(TextEditor *ed, int posisi, const char *isi) {
     ed->kursor_baris = posisi;
     ed->kursor_kolom = 0;
 
+    reset_hasil_cari(ed);
     return 0;
 }
 
@@ -108,6 +109,7 @@ int delete_baris(TextEditor *ed, int posisi) {
     ed->kursor_baris = ed->jumlah_baris - 1;
     ed->kursor_kolom = 0;
 
+    reset_hasil_cari(ed);
     return 0;
 }
 
@@ -295,11 +297,17 @@ int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
 
     if (count > 0) {
         ed->is_modified = 1;
-        printf("Berhasil mengganti %d kemunculan \"%s\" menjadi \"%s\".\n",
-               count, cari, ganti);
+        printf("Berhasil mengganti %d kemunculan \"%s\" menjadi \"%s\".\n", count, cari, ganti);
+        reset_hasil_cari(ed);
     } else {
         printf("Teks \"%s\" tidak ditemukan.\n", cari);
     }
 
     return count;
+}
+
+void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
+    ed->jumlah_hasil = 0;
+    ed->index_cari = 0;
+    ed->keyword_terakhir[0] = '\0';
 }
