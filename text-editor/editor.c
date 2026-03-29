@@ -229,3 +229,77 @@ void find_next(TextEditor *ed) {
         ed->index_cari + 1, ed->jumlah_hasil, // ditambah 1 krn tampilan untuk user dimulai dari 1 bkn 0
         h->baris + 1, h->kolom + 1);
 }
+
+int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
+    int i, count = 0;
+    size_t len_cari, len_ganti;
+    char *src, *pos, *hasil;
+    size_t cap, used, prefix;
+
+    // memastikan kata yang dicari tidak null
+    if (cari == NULL || strlen(cari) == 0) return -1;
+    // jika pengganti null, anggap sebagai string kosong (menghapus kata)
+    if (ganti == NULL) ganti = "";
+
+    // menghitung panjang string yg dicari & string pengganti
+    len_cari = strlen(cari);
+    len_ganti = strlen(ganti);
+
+    for (i = 0; i < ed->jumlah_baris; i++) {
+        if (ed->buffer[i] == NULL) continue;
+        if (strstr(ed->buffer[i], cari) == NULL) continue;
+
+        // menyiapkan buffer hasil utk menampung teks baru
+        cap = strlen(ed->buffer[i]) * 2 + 64; // alokasi buffer hasil di heap dengan kapasitas awal 2x panjang baris + margin 64 byte
+        hasil = (char *)malloc(cap);
+        if (hasil == NULL) return -1;
+        used = 0;
+        src = ed->buffer[i]; // menunjuk ke posisi baca saat ini di baris asli
+        // cari dan ganti semua kemunculan berikutnya
+        while ((pos = strstr(src, cari)) != NULL) {
+            prefix = (size_t)(pos - src); // menghitungg pjg teks sblm kemunculan kata yg ingin diganti
+
+            // memastikan buffer hasil cukup utk menampung prefix dan kata pengganti
+            while (used + prefix + len_ganti + 1 >= cap) {
+                char *tmp;
+                cap *= 2;
+                tmp = (char *)realloc(hasil, cap);
+                if (tmp == NULL) { free(hasil); return -1; }
+                hasil = tmp;
+            }
+            // menyalin teks sebelum keyword yang ditemukan
+            memcpy(hasil + used, src, prefix);
+            used += prefix;
+            // menyalin kata pengganti ke buffer hasil
+            memcpy(hasil + used, ganti, len_ganti);
+            used += len_ganti;
+            // geser posisi baca melewati kemunculan keyword yang baru diganti
+            src = pos + len_cari;
+            count++;
+        }
+
+        // menyalin sisa teks di baris tsb setelah kemunculan terakhir kata yg dicari
+        prefix = strlen(src);
+        while (used + prefix + 1 >= cap) {
+            char *tmp;
+            cap *= 2;
+            tmp = (char *)realloc(hasil, cap);
+            if (tmp == NULL) { free(hasil); return -1; }
+            hasil = tmp;
+        }
+        memcpy(hasil + used, src, prefix + 1); // +1 utk menyertakan null terminator
+        // bebaskan memori baris lama dan ganti dengan baris baru hasil modifikasi
+        free(ed->buffer[i]);
+        ed->buffer[i] = hasil;
+    }
+
+    if (count > 0) {
+        ed->is_modified = 1;
+        printf("Berhasil mengganti %d kemunculan \"%s\" menjadi \"%s\".\n",
+               count, cari, ganti);
+    } else {
+        printf("Teks \"%s\" tidak ditemukan.\n", cari);
+    }
+
+    return count;
+}
