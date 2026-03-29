@@ -81,7 +81,7 @@ int main() {
     printf("Hapus di Kolom berapa? (1-n): ");
     fgets(input_buffer, sizeof(input_buffer), stdin);
     sscanf(input_buffer, "%d", &target_kolom);
-    target_kolom -= 1;
+//    target_kolom -= 1;
 
     if (delete_karakter(&ed, target_baris, target_kolom) == 0) {
         printf("OK! Hasil baris %d: %s\n", target_baris, ed.buffer[target_baris]);
@@ -114,6 +114,40 @@ int main() {
         }
     }
 
+    // --------------- TEST UNTUK RESET HASIL CARI --------------
+    printf("----TEST DELETE BARIS----\n");
+    printf("Hapus Baris nomor berapa? (1-%d): ", ed.jumlah_baris);
+    fgets(input_buffer, sizeof(input_buffer), stdin);
+    sscanf(input_buffer, "%d", &target_baris);
+    target_baris -= 1;
+
+    if (delete_baris(&ed, target_baris) == 0) {
+        printf("OK! Baris %d telah dihapus.\n", target_baris+1);
+        printf("Jumlah baris sekarang: %d\n", ed.jumlah_baris);
+    }
+
+    // test find_teks
+    printf("\n----PENCARIAN TEKS----\n");
+    printf("Masukkan kata yang ingin dicari: ");
+    if (fgets(input_buffer, sizeof(input_buffer), stdin)) {
+        input_buffer[strcspn(input_buffer, "\n")] = 0; // hapus newline
+        
+        int total = find_teks(&ed, input_buffer);
+        
+        if (total > 0) {
+            printf("Kursor otomatis pindah ke: Baris %d, Kolom %d\n", 
+                ed.kursor_baris+1, ed.kursor_kolom+1);
+            
+            // tampilkan semua lokasi jika lebih dari satu
+            printf("Detail lokasi temuan:\n");
+            for(int j = 0; j < total; j++) {
+                printf(" - Temuan %d: Baris %d, Kolom %d\n",
+                    j + 1, ed.hasil_cari[j].baris+1, ed.hasil_cari[j].kolom+1);
+            }
+        }
+    }
+    // ----------------------------
+    
     // test find_next
     printf("\n----TEST FIND NEXT----\n");
     if (ed.jumlah_hasil > 1) {
