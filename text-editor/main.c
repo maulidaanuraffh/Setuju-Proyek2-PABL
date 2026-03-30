@@ -70,8 +70,6 @@ static void cmd_toggle_nomor(TextEditor *ed) {
     ed->show_line_num = !ed->show_line_num;
     printf("Nomor baris: %s\n", ed->show_line_num ? "ON" : "OFF");
     fflush(stdout);
-
-    getchar();
 }
 
 static void cmd_hapus_baris(TextEditor *ed) {
@@ -100,6 +98,32 @@ static void cmd_hapus_baris(TextEditor *ed) {
     }
 }
 
+ static void cmd_go_to_line_menu(TextEditor *ed) {
+    char input[16];
+    int nomor;
+
+    if (ed->jumlah_baris == 0) {
+        printf("Dokumen kosong.\n");
+        getchar();
+        return;
+    }
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Pergi ke baris (1-%d): ", ed->jumlah_baris);
+    fflush(stdout);
+
+    if (baca_baris_aman(input, sizeof(input)) <= 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    nomor = atoi(input);
+    go_to_line(ed, nomor);
+    ed->mode = MODE_PERINTAH;
+}
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 
@@ -107,6 +131,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
             break;
         case '2': 
             cmd_hapus_baris(ed);
+            break;
+        case 'g': 
+            cmd_go_to_line_menu(ed); 
             break;
         case 'l': 
             cmd_toggle_nomor(ed); 
