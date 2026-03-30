@@ -41,6 +41,12 @@ void bebaskan_buffer(TextEditor *ed) {
     ed->keyword_terakhir[0] = '\0';
 }
 
+void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
+    ed->jumlah_hasil = 0;
+    ed->index_cari = 0;
+    ed->keyword_terakhir[0] = '\0';
+}
+
 char *alokasi_baris(const char *teks) {
     size_t len;
     char  *hasil;
@@ -162,7 +168,7 @@ int delete_karakter(TextEditor *ed, int baris, int kolom) {
 
     return -1;
 }
-
+       
 int find_teks(TextEditor *ed, const char *keyword) {
     int i;
     size_t klen;
@@ -306,12 +312,6 @@ int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
     return count;
 }
 
-void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
-    ed->jumlah_hasil = 0;
-    ed->index_cari = 0;
-    ed->keyword_terakhir[0] = '\0';
-}
-
 void word_count(const TextEditor *ed) {
     int i, j;
     int total_kata = 0, total_char = 0, dalam_kata = 0;
@@ -346,4 +346,24 @@ void word_count(const TextEditor *ed) {
     printf("  Jumlah baris    : %d\n", ed->jumlah_baris);
     printf("  Jumlah kata     : %d\n", total_kata);
     printf("  Jumlah karakter : %d\n", total_char);
+}
+
+int go_to_line(TextEditor *ed, int nomor) {
+    int idx = nomor - 1; // konversi nomor baris dari sisi user
+    // jika kosong, tidak bisa navigasi
+    if (ed->jumlah_baris == 0) { 
+        printf("Dokumen kosong.\n"); 
+        getchar();
+        return -1; 
+    }
+    // validasi nomor baris
+    if (idx < 0 || idx >= ed->jumlah_baris) {                              
+        printf("Nomor baris %d tidak valid (1-%d).\n", nomor, ed->jumlah_baris);
+        getchar();
+        return -1;
+    }
+    // update posisi kursor
+    ed->kursor_baris = idx; // pindahkan kursor ke baris yang diminta
+    ed->kursor_kolom = 0;   // reset kolom ke awal baris 
+    return 0;      
 }
