@@ -1,93 +1,143 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "editor.h"
+#include "display.h"
+#include "filemanager.h"
 
-int main() {
-    TextEditor ed;
-    char input_buffer[MAX_INPUT];
-    int target_baris, target_kolom;
-    char input_c;
+void cmd_exit(TextEditor *ed) {
+    char pilihan[8];
 
-    // test init_editor 
-    init_editor(&ed); 
+    if (ed->is_modified) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Ada perubahan belum disimpan. Simpan dulu? (ya/tidak): ");
+        fflush(stdout);
 
-    // test insert_baris
-    printf("----TEST INSERT 3 BARIS----\n");
-    for(int i = 0; i < 3; i++){
-        printf("Masukkan isi baris ke-%d: ", i);
-        if (fgets(input_buffer, sizeof(input_buffer), stdin)) {
-            input_buffer[strcspn(input_buffer, "\n")] = 0;
-            insert_baris(&ed, i, input_buffer);
-        }
-    }
-    // menyisipi baris baru
-    printf("Insert baris baru di? : ");
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_baris); // mengambil angka posisi
-    printf("Isi baris baru: ");
-    if (fgets(input_buffer, sizeof(input_buffer), stdin)) {
-        input_buffer[strcspn(input_buffer, "\n")] = 0;
-        
-        // panggil fungsi insert_baris dengan posisi pilihan user
-        if (insert_baris(&ed, target_baris, input_buffer) == 0) { //
-            printf("\nBerhasil disisipkan! Hasilnya sekarang:\n");
-            for(int i = 0; i < ed.jumlah_baris; i++) {
-                printf("baris ke-%d -> %s\n", i, ed.buffer[i]);
+        if (baca_baris_aman(pilihan, sizeof(pilihan)) > 0) {
+            if (strcmp(pilihan, "ya") == 0) {
+                save_file(ed); 
+            } else {
+                ed->mode = MODE_PERINTAH; 
+                return; 
             }
-        } else {
-            printf("Gagal menyisipkan baris.\n");
         }
     }
 
-    // test delete_baris
-    printf("----TEST DELETE BARIS----\n");
-    printf("Hapus Baris nomor berapa? (0-%d): ", ed.jumlah_baris - 1);
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_baris);
+    bebaskan_buffer(ed);
+    printf("\nPROGRAM SELESAI!\n");
+    exit(0);
+}
 
-    if (delete_baris(&ed, target_baris) == 0) {
-        printf("OK! Baris %d telah dihapus.\n", target_baris);
-        printf("Jumlah baris sekarang: %d\n", ed.jumlah_baris);
+static void cmd_tulis_baris(TextEditor *ed) {
+    char input[MAX_INPUT];
+    int posisi;
+    int n = 0;
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+
+    posisi = (ed->jumlah_baris == 0) ? 0 : ed->kursor_baris + 1;
+
+    printf("[Mode tulis] Ketik baris demi baris, Enter kosong untuk selesai.\n");
+    printf("(Baris akan disisipkan mulai posisi %d)\n\n", posisi + 1);
+
+     while (1) {
+        printf("  [%d] ", posisi + 1);
+        fflush(stdout);
+
+        if (fgets(input, sizeof(input), stdin) == NULL) break;
+        input[strcspn(input, "\r\n")] = '\0';
+
+        if (strlen(input) == 0) {
+            if (n == 0) printf("  (tidak ada baris yang ditambahkan)\n");
+            else printf("  %d baris ditambahkan.\n", n);
+            break;
+        }
+
+        if ((int)strlen(input) == sizeof(input) - 1) flush_stdin();
+
+        if (insert_baris(ed, posisi, input) == 0) {
+            posisi++;
+            n++;
+        }
     }
 
-    // test insert_karakter
-    printf("\n----TEST INSERT KARAKTER----\n");
-    printf("Ketik satu huruf yang ingin disisipkan: ");
-    scanf(" %c", &input_c); 
-    getchar(); 
+    ed->mode = MODE_PERINTAH;
+}
 
-    printf("Mau disisipkan di Baris berapa? (0-%d): ", ed.jumlah_baris - 1);
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_baris);
+static void cmd_toggle_nomor(TextEditor *ed) {
+    ed->show_line_num = !ed->show_line_num;
+    printf("Nomor baris: %s\n", ed->show_line_num ? "ON" : "OFF");
+    fflush(stdout);
 
-    printf("Mau disisipkan di Kolom berapa? (0-n): ");
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_kolom);
+    getchar();
+}
 
-    if (insert_karakter(&ed, target_baris, target_kolom, input_c) == 0) {
-        printf("OK! Hasil baris %d: %s\n", target_baris, ed.buffer[target_baris]);
+static void cmd_hapus_baris(TextEditor *ed) {
+   if (ed->jumlah_baris == 0) {
+        printf("Dokumen kosong. Klik Enter untuk lanjut\n");
+        getchar();
+        return;
     }
 
-    // test delete_karakter
-    printf("Hapus karakter di Baris berapa?: ");
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_baris);
+    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",
+        ed->kursor_baris + 1,
+        ed->buffer[ed->kursor_baris] ? 
+        ed->buffer[ed->kursor_baris] : "");
+    fflush(stdout);
 
-    printf("Hapus di Kolom berapa? (indeks karakter + 1): ");
-    fgets(input_buffer, sizeof(input_buffer), stdin);
-    sscanf(input_buffer, "%d", &target_kolom);
-
-    if (delete_karakter(&ed, target_baris, target_kolom) == 0) {
-        printf("OK! Hasil baris %d: %s\n", target_baris, ed.buffer[target_baris]);
+    {
+        char konfirmasi[8];
+        ed->mode = MODE_INPUT;
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) > 0
+            && strcmp(konfirmasi, "ya") == 0) {
+            delete_baris(ed, ed->kursor_baris);
+        } else {
+            printf("Dibatalkan.\n");
+        }
+        ed->mode = MODE_PERINTAH; 
     }
+}
 
-    // hasil akhir
-    printf("\nIsi Dokumen Akhir:\n");
-    for(int i = 0; i < ed.jumlah_baris; i++) {
-        printf("[%d]: %s\n", i, ed.buffer[i]);
+void proses_perintah(TextEditor *ed, int pilihan) {
+   switch (pilihan) {
+        case '1': 
+            cmd_tulis_baris(ed);
+            break;
+        case '2': 
+            cmd_hapus_baris(ed);
+            break;
+        case 'l': 
+            cmd_toggle_nomor(ed); 
+            break;
+        case 'q':
+            cmd_exit(ed);
+            break;
+        default:
+            break;
     }
+}
 
-    bebaskan_buffer(&ed);
-    printf("bebaskan OK\n");
+int main(void) {
+    TextEditor ed;
+    int pilihan;
+ 
+    init_editor(&ed);
+ 
+    printf("Text Editor — Proyek 2\n");
+    printf("Gunakan nomor/huruf menu lalu tekan Enter.\n\n");
+ 
+    while (1) {
+        render_layar(&ed);
+        pilihan = getchar();
+        if (pilihan == EOF) { 
+            cmd_exit(&ed); 
+        }
+        if (pilihan == '\n' || pilihan == '\r') continue;
+        flush_stdin();
+        proses_perintah(&ed, pilihan);
+    }
+ 
     return 0;
 }

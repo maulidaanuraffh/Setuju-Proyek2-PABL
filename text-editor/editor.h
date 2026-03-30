@@ -46,4 +46,10 @@ int insert_karakter(TextEditor *ed, int baris, int kolom, char c);
 int delete_karakter(TextEditor *ed, int baris, int kolom);
 int go_to_line(TextEditor *ed, int nomor);
 
+int find_teks(TextEditor *ed, const char *keyword);
+void find_next(TextEditor *ed);
+int replace_teks(TextEditor *ed, const char *cari, const char *ganti);
+void reset_hasil_cari(TextEditor *ed);
+void word_count(const TextEditor *ed);
+
 #endif
