@@ -74,10 +74,39 @@ static void cmd_toggle_nomor(TextEditor *ed) {
     getchar();
 }
 
+static void cmd_hapus_baris(TextEditor *ed) {
+   if (ed->jumlah_baris == 0) {
+        printf("Dokumen kosong. Klik Enter untuk lanjut\n");
+        getchar();
+        return;
+    }
+
+    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",
+        ed->kursor_baris + 1,
+        ed->buffer[ed->kursor_baris] ? 
+        ed->buffer[ed->kursor_baris] : "");
+    fflush(stdout);
+
+    {
+        char konfirmasi[8];
+        ed->mode = MODE_INPUT;
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) > 0
+            && strcmp(konfirmasi, "ya") == 0) {
+            delete_baris(ed, ed->kursor_baris);
+        } else {
+            printf("Dibatalkan.\n");
+        }
+        ed->mode = MODE_PERINTAH; 
+    }
+}
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 
             cmd_tulis_baris(ed);
+            break;
+        case '2': 
+            cmd_hapus_baris(ed);
             break;
         case 'l': 
             cmd_toggle_nomor(ed); 
