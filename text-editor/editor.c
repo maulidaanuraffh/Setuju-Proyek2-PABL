@@ -160,3 +160,24 @@ int delete_karakter(TextEditor *ed, int baris, int kolom) {
 
     return -1;
 }
+
+int go_to_line(TextEditor *ed, int nomor) {
+    int idx = nomor - 1; // konversi nomor baris dari sisi user
+
+    // jika kosong, tidak bisa navigasi
+    if (ed->jumlah_baris == 0) { 
+        printf("Dokumen kosong.\n"); 
+        getchar();
+        return -1; 
+    }
+    // validasi nomor baris
+    if (idx < 0 || idx >= ed->jumlah_baris) {                              
+        printf("Nomor baris %d tidak valid (1-%d).\n", nomor, ed->jumlah_baris);
+        getchar();
+        return -1;
+    }
+    // update posisi kursor
+    ed->kursor_baris = idx; // pindahkan kursor ke baris yang diminta
+    ed->kursor_kolom = 0;   // reset kolom ke awal baris 
+    return 0;             
+}
