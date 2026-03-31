@@ -169,6 +169,64 @@ static void cmd_edit_baris(TextEditor *ed) {
     reset_hasil_cari(ed);
 }
 
+static void cmd_cari(TextEditor *ed) {
+    char keyword[256]; // buffer untuk menyimpan kata kunci pencarian
+
+    // masuk ke mode input agar tampilan render_layar menyesuaikan
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Cari teks: ");
+    fflush(stdout);
+
+    // mengambil input kata kunci dari user dengan aman
+    if (baca_baris_aman(keyword, sizeof(keyword)) <= 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    find_teks(ed, keyword);
+
+    // cek apakah ada kecocokan yang ditemukan
+    if (ed->jumlah_hasil > 0) {
+        // menampilkan hasil pencarian
+        render_hasil_cari(ed);
+        printf("Gunakan [n] untuk ke kemunculan berikutnya.\n");
+    }
+
+    printf("\nTekan Enter untuk melanjutkan...");
+    fflush(stdout);
+    flush_stdin();
+
+    ed->mode = MODE_PERINTAH; // kembali ke mode perintah
+}
+
+static void cmd_cari_ganti(TextEditor *ed) {
+    char cari[256], ganti[MAX_INPUT];
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+
+    printf("Cari   : ");
+    fflush(stdout);
+    if (baca_baris_aman(cari, sizeof(cari)) <= 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    printf("Ganti  : ");
+    fflush(stdout);
+    if (baca_baris_aman(ganti, sizeof(ganti)) < 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    replace_teks(ed, cari, ganti);
+    ed->mode = MODE_PERINTAH;
+}
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 
@@ -180,11 +238,20 @@ void proses_perintah(TextEditor *ed, int pilihan) {
         case '3': 
             cmd_edit_baris(ed);
             break;
+        case '4':
+            cmd_cari(ed);
+            break;
+        case '5':
+            cmd_cari_ganti(ed);
+            break;
         case 'g': 
             cmd_go_to_line_menu(ed); 
             break;
         case 'l': 
             cmd_toggle_nomor(ed); 
+            break;
+        case 'n':
+            find_next(ed);
             break;
         case 'q':
             cmd_exit(ed);

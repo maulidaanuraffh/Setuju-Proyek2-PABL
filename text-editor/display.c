@@ -244,14 +244,14 @@ void render_layar(const TextEditor *ed) {
 /*   tampilkan_menu()  */
 void tampilkan_menu(const TextEditor *ed) {
     printf("________________________________________________________________________________\n");
-    printf(" [1] Tulis baris      [2] Hapus baris aktif   [3] Edit baris aktif\n");
-    printf(" [4] Cari teks        [5] Cari & ganti        [n] Kemunculan berikutnya\n");
-    printf(" [6] Simpan           [7] Buka file           [8] File baru\n");
-    printf(" [9] Hapus file       [0] Hitung kata         [l] Toggle nomor baris\n");
-    printf(" [g] Go to line       [i] Insert karakter     [d] Delete karakter\n");
+    printf(" [1] Tulis baris           [6] Simpan file         [g] Go to line\n");
+    printf(" [2] Hapus baris aktif     [7] Buka file           [l] Toggle nomor baris\n");
+    printf(" [3] Edit baris aktif      [8] Buat file baru      [n] Kemunculan berikutnya\n");
+    printf(" [4] Cari teks             [9] Hapus file\n");
+    printf(" [5] Cari & ganti          [0] Hitung kata\n");
 
     if (ed->is_modified) {
-        printf(" [q] Keluar         *** Ada perubahan belum disimpan! ***\n");
+        printf(" [q] Keluar                ========= Ada perubahan belum disimpan! =========\n");
     } else {
         printf(" [q] Keluar\n");
     }
