@@ -5,6 +5,9 @@
 #include "display.h"
 #include "filemanager.h"
 
+void proses_perintah(TextEditor *ed, int pilihan);
+void cmd_exit(TextEditor *ed);
+
 void cmd_exit(TextEditor *ed) {
     char pilihan[8];
 
@@ -124,6 +127,48 @@ static void cmd_hapus_baris(TextEditor *ed) {
     ed->mode = MODE_PERINTAH;
 }
 
+static void cmd_edit_baris(TextEditor *ed) {
+    char input[MAX_INPUT];
+    char *baris_baru;
+    int ret;
+
+    if (ed->jumlah_baris == 0) {
+        printf("Dokumen kosong.\n");
+        return;
+    }
+
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Edit baris %d: ", ed->kursor_baris + 1);
+    fflush(stdout);
+
+    strncpy(input,
+            ed->buffer[ed->kursor_baris] ? 
+            ed->buffer[ed->kursor_baris] : "",
+            sizeof(input) - 1);
+    input[sizeof(input) - 1] = '\0';
+
+    ret = edit_baris_inline(input, sizeof(input), input);
+
+    if (ret == 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    baris_baru = alokasi_baris(input);
+    if (baris_baru == NULL) {
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+
+    free(ed->buffer[ed->kursor_baris]);
+    ed->buffer[ed->kursor_baris] = baris_baru;
+    ed->is_modified = 1;
+    ed->mode = MODE_PERINTAH;
+    reset_hasil_cari(ed);
+}
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 
@@ -131,6 +176,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
             break;
         case '2': 
             cmd_hapus_baris(ed);
+            break;
+        case '3': 
+            cmd_edit_baris(ed);
             break;
         case 'g': 
             cmd_go_to_line_menu(ed); 

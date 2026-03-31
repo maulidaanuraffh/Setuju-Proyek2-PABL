@@ -41,40 +41,114 @@ int baca_baris_aman(char *buf, int max ){
 }
 
 /*   edit_baris_inline()   */
-int edit_baris_inline(char *buf, int max, const char *isi_lama) {
-    int len;
+int edit_baris_inline(char *buf, int buf_size, const char *isi_awal) {
+    int len = 0;   // melacak jml karakter yang ada di buffer         
+    int pos = 0;   // melacak posisi kursor
+    int ch, ch2;
 
-    if (buf == NULL || max <= 0) return -1;
-
-    /* tampilkan isi lama di baris */
-    printf("  Isi lama  : ");
-    if (isi_lama && strlen(isi_lama) > 0) {
-        printf("%s\n", isi_lama);
-    } else {
-        printf("(kosong)\n");
+    // salin teks awal ke buffer
+    if (isi_awal && isi_awal[0] != '\0') {
+        len = (int)strlen(isi_awal);
+        if (len >= buf_size) len = buf_size - 1; // proteksi agar tidak overflow
+        memcpy(buf, isi_awal, len);
+        pos = len; // kursor ditaruh di akhir teks
     }
-    printf("  Isi baru  : ");
+    buf[len] = '\0';
+
+    // tampilkan isi awal, kursor di posisi pos
+    printf("%s", buf);
     fflush(stdout);
 
-    if (fgets(buf, max, stdin) == NULL) {
-        buf[0] = '\0';
-        return -1;
+    // menangkap input keyboard perkarakter
+    while (1) {
+        ch = _getch(); // ambil input tanpa perlu tekan enter (karakter per karakter)
+
+        // menangani tombol spesial (panah, delete, home, end)
+        if (ch == KEY_SPECIAL || ch == 0) {
+            ch2 = _getch();   // baca kode kedua 
+
+            if (ch2 == KEY_LEFT && pos > 0) {
+                // gerak ke kiri 
+                pos--;
+                printf("\033[1D");
+                fflush(stdout);
+
+            } else if (ch2 == KEY_RIGHT && pos < len) {
+                // gerak ke kanan 
+                pos++;
+                printf("\033[1C");
+                fflush(stdout);
+
+            } else if (ch2 == KEY_HOME) {
+                // ke awal baris
+                if (pos > 0) {
+                    printf("\033[%dD", pos);
+                    pos = 0;
+                    fflush(stdout);
+                }
+
+            } else if (ch2 == KEY_END) {
+                // ke akhir baris 
+                if (pos < len) {
+                    printf("\033[%dC", len - pos); // maju sebanyak sisa karakter ke akhir
+                    pos = len;
+                    fflush(stdout);
+                }
+
+            } else if (ch2 == KEY_DELETE && pos < len) {
+                // hapus karakter di posisi kursor 
+                memmove(&buf[pos], &buf[pos + 1], len - pos);
+                len--;
+                buf[len] = '\0';
+
+                // render ulang dari posisi kursor ke kanan 
+                printf("%s ", &buf[pos]);          // tulis sisa + hapus char terakhir 
+                printf("\033[%dD", len - pos + 1); // kembalikan kursor ke posisi asli
+                fflush(stdout);
+            }
+            continue;
+        }
+
+        // selesai mengedit
+        if (ch == KEY_ENTER) {
+            printf("\n");
+            return 1;   
+        }
+
+        // batalkan
+        if (ch == KEY_ESC) {
+            printf("\n");
+            return 0;
+        }
+
+        // hapus karakter SEBELUM kursor
+        if (ch == KEY_BACKSPACE) {
+            if (pos > 0) {
+                memmove(&buf[pos - 1], &buf[pos], len - pos + 1);
+                pos--;
+                len--;
+
+                printf("\033[1D");             // kursor mundur 1 
+                printf("%s ", &buf[pos]);      // tulis sisa + hapus char terakhir 
+                printf("\033[%dD", len - pos + 1); // kembalikan kursor 
+                fflush(stdout);
+            }
+            continue;
+        }
+
+        // karakter biasa, insert di posisi kursor
+        if (ch >= 32 && ch < 127 && len < buf_size - 1) {
+            memmove(&buf[pos + 1], &buf[pos], len - pos + 1);
+            buf[pos] = (char)ch;
+            pos++;
+            len++;
+
+            printf("%s", &buf[pos - 1]);           // tulis dari pos lama 
+            if (pos < len)
+                printf("\033[%dD", len - pos);     // kembalikan kursor 
+            fflush(stdout);
+        }
     }
-
-    buf[strcspn(buf, "\r\n")] = '\0';
-    if ((int)strlen(buf) == max - 1) flush_stdin();
-
-    len = (int)strlen(buf);
-
-    /* Enter kosong=batalkan, pertahankan isi lama */
-    if (len == 0) {
-        if (isi_lama) strncpy(buf, isi_lama, max - 1);
-        buf[max - 1] = '\0';
-        printf("  (tidak ada perubahan)\n");
-        return 0; /* 0 = tidak berubah, berbeda dari -1 = error */
-    }
-
-    return len;
 }
 
 /*   render_status_bar  ()   */
@@ -170,7 +244,7 @@ void render_layar(const TextEditor *ed) {
 /*   tampilkan_menu()  */
 void tampilkan_menu(const TextEditor *ed) {
     printf("________________________________________________________________________________\n");
-    printf(" [1] Tulis baris      [2] Hapus baris aktif  [3] Edit baris aktif\n");
+    printf(" [1] Tulis baris      [2] Hapus baris aktif   [3] Edit baris aktif\n");
     printf(" [4] Cari teks        [5] Cari & ganti        [n] Kemunculan berikutnya\n");
     printf(" [6] Simpan           [7] Buka file           [8] File baru\n");
     printf(" [9] Hapus file       [0] Hitung kata         [l] Toggle nomor baris\n");
