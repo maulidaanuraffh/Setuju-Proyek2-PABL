@@ -227,6 +227,13 @@ static void cmd_cari_ganti(TextEditor *ed) {
     ed->mode = MODE_PERINTAH;
 }
 
+ static void cmd_hitung_kata(TextEditor *ed) {
+    word_count(ed);
+    printf("Tekan Enter...");
+    fflush(stdout);
+    flush_stdin();
+}
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 
@@ -243,6 +250,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
             break;
         case '5':
             cmd_cari_ganti(ed);
+            break;
+        case '0':
+            cmd_hitung_kata(ed);
             break;
         case 'g': 
             cmd_go_to_line_menu(ed); 
