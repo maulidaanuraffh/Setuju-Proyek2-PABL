@@ -254,6 +254,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
         case '6': 
             cmd_simpan(ed); 
             break;
+        case '7': 
+            cmd_buka_file(ed); 
+            break;
         case '0':
             cmd_hitung_kata(ed);
             break;
@@ -299,4 +302,22 @@ int main(void) {
 
 static void cmd_simpan(TextEditor *ed) {
     save_file(ed);
+}
+
+static void cmd_buka_file(TextEditor *ed) {
+    char path[MAX_PATH];
+    
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Path file: ");
+    fflush(stdout);
+    
+    if (baca_baris_aman(path, sizeof(path)) <= 0) {
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+ 
+    open_file(ed, path);
+    ed->mode = MODE_PERINTAH;
 }
