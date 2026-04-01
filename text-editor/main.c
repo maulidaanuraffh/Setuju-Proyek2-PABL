@@ -257,6 +257,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
         case '7': 
             cmd_buka_file(ed); 
             break;
+        case '8': 
+            cmd_file_baru(ed); 
+            break;
         case '0':
             cmd_hitung_kata(ed);
             break;
@@ -320,4 +323,26 @@ static void cmd_buka_file(TextEditor *ed) {
  
     open_file(ed, path);
     ed->mode = MODE_PERINTAH;
+}
+
+static void cmd_file_baru(TextEditor *ed) {
+    char konfirmasi[8];
+    
+    if (ed->is_modified) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Ada perubahan belum disimpan. Buat file baru? (ya/tidak): ");
+        fflush(stdout);
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0 || strcmp(konfirmasi, "ya") != 0) {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return;
+        }
+        ed->mode = MODE_PERINTAH;
+    }
+    
+    bebaskan_buffer(ed);
+    ed->filepath[0] = '\0';
+    ed->filename[0] = '\0';
+    printf("Dokumen baru siap.\n");
 }
