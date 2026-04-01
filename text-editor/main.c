@@ -260,6 +260,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
         case '8': 
             cmd_file_baru(ed); 
             break;
+        case '9': 
+            cmd_hapus_file(ed); 
+            break;
         case '0':
             cmd_hitung_kata(ed);
             break;
@@ -346,3 +349,7 @@ static void cmd_file_baru(TextEditor *ed) {
     ed->filename[0] = '\0';
     printf("Dokumen baru siap.\n");
 }
+
+static void cmd_hapus_file(TextEditor *ed) {
+      delete_file(ed);
+  }
