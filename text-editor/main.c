@@ -251,6 +251,9 @@ void proses_perintah(TextEditor *ed, int pilihan) {
         case '5':
             cmd_cari_ganti(ed);
             break;
+        case '6': 
+            cmd_simpan(ed); 
+            break;
         case '0':
             cmd_hitung_kata(ed);
             break;
@@ -292,4 +295,8 @@ int main(void) {
     }
  
     return 0;
+}
+
+static void cmd_simpan(TextEditor *ed) {
+    save_file(ed);
 }
