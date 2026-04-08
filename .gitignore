@@ -8,3 +8,8 @@
 
 # Windows thumbnail cache
 Thumbs.db
+
+# Dev-C++ project files
+*.dev
+*.layout
+Makefile.win
