@@ -315,7 +315,7 @@ static void cmd_simpan(TextEditor *ed) {
     save_file(ed);
 }
 
-static void cmd_buka_file(TextEditor *ed) {
+/*static void cmd_buka_file(TextEditor *ed) {
     char path[MAX_PATH];
     
     ed->mode = MODE_INPUT;
@@ -330,6 +330,23 @@ static void cmd_buka_file(TextEditor *ed) {
     }
  
     open_file(ed, path);
+    ed->mode = MODE_PERINTAH;
+}*/
+
+static void cmd_buka_file(TextEditor *ed) {
+    char path[MAX_FILEPATH];
+    
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("Sedang membuka File Explorer...\n");
+
+    // Panggil dialog daripada menggunakan baca_baris_aman
+    if (dialog_buka_file(path)) {
+        open_file(ed, path);
+    } else {
+        printf("Buka file dibatalkan.\n");
+    }
+    
     ed->mode = MODE_PERINTAH;
 }
 
