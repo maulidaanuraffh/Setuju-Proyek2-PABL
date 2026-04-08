@@ -234,6 +234,11 @@ static void cmd_cari_ganti(TextEditor *ed) {
     flush_stdin();
 }
 
+static void cmd_simpan(TextEditor *ed);
+static void cmd_buka_file(TextEditor *ed);
+static void cmd_file_baru(TextEditor *ed);
+static void cmd_hapus_file(TextEditor *ed);
+
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
         case '1': 

@@ -6,7 +6,7 @@
 
 #define EDITOR_H
 #define MAX_BARIS 500
-#define MAX_PATH 300
+#define MAX_FILEPATH 300
 #define MAX_INPUT 4096
 #define MAX_FILENAME 100
 #define MAX_HASIL 2000 
@@ -23,7 +23,7 @@ typedef struct {
 typedef struct {
     char *buffer[MAX_BARIS];
     int   jumlah_baris;
-    char  filepath[MAX_PATH];
+    char  filepath[MAX_FILEPATH];
     char  filename[MAX_FILENAME];
     int   is_modified;
     int   kursor_baris;   
