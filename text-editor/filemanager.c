@@ -82,8 +82,8 @@ int open_file(TextEditor *ed, const char *path) {
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
 
-    strncpy(ed->filepath, path, MAX_PATH - 1);
-    ed->filepath[MAX_PATH - 1] = '\0';
+    strncpy(ed->filepath, path, MAX_FILEPATH - 1);
+    ed->filepath[MAX_FILEPATH - 1] = '\0';
 
     ptr = ambil_nama_file(path);
     strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
@@ -96,7 +96,7 @@ int open_file(TextEditor *ed, const char *path) {
 /*   save_file   */
 
 int save_file(TextEditor *ed) {
-    char path_baru[MAX_PATH];
+    char path_baru[MAX_FILEPATH];
 
     if (strlen(ed->filepath) == 0) {
         /* belum punya path — minta dari user */
@@ -157,8 +157,8 @@ int save_as(TextEditor *ed, const char *path) {
 
     fclose(fp);
 
-    strncpy(ed->filepath, path, MAX_PATH - 1);
-    ed->filepath[MAX_PATH - 1] = '\0';
+    strncpy(ed->filepath, path, MAX_FILEPATH - 1);
+    ed->filepath[MAX_FILEPATH - 1] = '\0';
 
     ptr = ambil_nama_file(path);
     strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
