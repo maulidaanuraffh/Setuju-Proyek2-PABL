@@ -9,8 +9,6 @@
 #include "editor.h"
 #include "filemanager.h"
 #include "display.h"
-#include <windows.h>
-#include <commdlg.h>
 
 /*   ambil_nama_file   */
 
@@ -95,69 +93,69 @@ int open_file(TextEditor *ed, const char *path) {
     return 0;
 }
 
-int dialog_buka_file(char *path_output) {
-    OPENFILENAME ofn;
-    char szFile[260];
-
-    // Gunakan memset untuk membersihkan memori struktur
-    memset(&ofn, 0, sizeof(ofn));
-    memset(szFile, 0, sizeof(szFile));
-
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-    if (GetOpenFileName(&ofn) == TRUE) {
-        strcpy(path_output, ofn.lpstrFile);
-        return 1;
-    }
-    return 0;
-}
-
-/*   save_file   */
-
-/*int save_file(TextEditor *ed) {
+int save_file (TextEditor *ed){
     char path_baru[MAX_FILEPATH];
+    char pilihan[4];
 
-    if (strlen(ed->filepath) == 0) {
+    if (strlen(ed->filepath)== 0) {
         ed->mode = MODE_INPUT;
         render_layar(ed);
-        printf("Nama file baru (misal: catatan.txt): ");
+        printf("Nama file baru (misal : catatan.txt):/n ");
         fflush(stdout);
 
-        if (baca_baris_aman(path_baru, sizeof(path_baru)) <= 0) {
-            printf("Dibatalkan.\n");
-            ed->mode = MODE_PERINTAH;
+        if(baca_baris_aman(path_baru, sizeof(path_baru)) <= 0){
+            printf("Dibatalkan,\n");
+            ed->mode= MODE_PERINTAH;
             return -1;
         }
+
         ed->mode = MODE_PERINTAH;
         return save_as(ed, path_baru);
     }
 
-    return save_as(ed, ed->filepath);
-}*/
+    ed->mode = MODE_INPUT;
+    render_layar(ed);
+    printf("____________________________________________\n");
+    printf("File aktif: \"%s\"\n" , ed->filename);
+    printf("____________________________________________\n");
+    printf("[1] Save    - Simpan sebagai file yang sama\n");
+    printf("[2] Save As - Simpan sebagai file baru\n");
+    printf("____________________________________________\n");
+    printf("Pilih (1/2)");
+    fflush(stdout);
 
-/* Update fungsi save_file di filemanager.c */
-int save_file(TextEditor *ed) {
-    char path_baru[MAX_FILEPATH];
-
-    // Jika file belum punya path (file baru)
-    if (strlen(ed->filepath) == 0) {
-        if (dialog_simpan_file(path_baru)) {
-            return save_as(ed, path_baru);
-        }
-        return -1; // Batal
+    if(baca_baris_aman(pilihan, sizeof(pilihan))<= 0){
+        printf("Dibatalkan.\n");
+        ed->mode = MODE_PERINTAH;
+        return -1;
     }
 
-    // Jika sudah punya path, langsung simpan (Save)
-    return save_as(ed, ed->filepath);
+    //Pilihan 1//
+    
+    if(strcmp(pilihan, "1")== 0){
+        ed->mode = MODE_PERINTAH;
+        return save_as (ed, ed->filepath);
+    }
+
+    //Pilihan 2//
+
+    if (strcmp(pilihan, "2") == 0){
+        printf("Nama file baru : ");
+        fflush(stdout);
+
+        if(baca_baris_aman(path_baru, sizeof(path_baru)) <= 0){
+            printf("Dibatalkan. \n");
+            ed->mode = MODE_PERINTAH;
+            return -1;
+        }
+
+        ed->mode = MODE_PERINTAH;
+        return save_as(ed, path_baru);
+    }
+
+    printf("Pilihan tidak valid. Dibatalkan. \n");
+    ed->mode = MODE_PERINTAH;
+    return -1;
 }
 
 /*    save_as()   */
@@ -209,37 +207,6 @@ int save_as(TextEditor *ed, const char *path) {
 
     ed->is_modified = 0;
     printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
-    return 0;
-}
-
-
-int dialog_simpan_file(char *path_output) {
-    OPENFILENAME ofn;
-    char szFile[260];
-
-    memset(&ofn, 0, sizeof(ofn));
-    memset(szFile, 0, sizeof(szFile));
-
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    
-    // Memberikan pilihan format .txt
-    ofn.lpstrFilter = "Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    
-    // Tambahan Flag: OFN_OVERWRITEPROMPT untuk konfirmasi jika menimpa file
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-    ofn.lpstrDefExt = "txt"; // Ekstensi otomatis jika user lupa mengetik .txt
-
-    if (GetSaveFileName(&ofn) == TRUE) {
-        strcpy(path_output, ofn.lpstrFile);
-        return 1;
-    }
     return 0;
 }
 

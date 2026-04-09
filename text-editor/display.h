@@ -11,13 +11,13 @@
 #endif
 #include "editor.h"
 
-#define TAMPIL_BARIS 22   /* jumlah baris konten yang ditampilkan */
+#define TAMPIL_BARIS 22 
 #define MODE_PERINTAH      0
 #define MODE_INPUT     1
 #define KEY_ENTER     13
 #define KEY_ESC       27
 #define KEY_BACKSPACE  8
-#define KEY_SPECIAL   224   /* prefix tombol panah / Del di Windows */
+#define KEY_SPECIAL   224
 #define KEY_LEFT       75
 #define KEY_RIGHT      77
 #define KEY_DELETE     83
@@ -33,4 +33,4 @@ int   edit_baris_inline(char *buf, int max, const char *isi_lama);
 void  flush_stdin(void);
 void  clear_screen(void);
 
-#endif /* DISPLAY_H */
+#endif
