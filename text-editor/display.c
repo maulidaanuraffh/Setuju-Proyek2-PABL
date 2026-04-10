@@ -4,7 +4,6 @@
  * ============================================================ */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "editor.h"
 #include "display.h"
@@ -21,8 +20,7 @@ void clear_screen(void){
 /*   flush_stdin()   */
 void flush_stdin(void){
     int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ;
+    while ((c = getchar()) != '\n' && c != EOF);
 }
 
 /*   baca_baris_aman()   */
@@ -37,7 +35,7 @@ int baca_baris_aman(char *buf, int max ){
 
     if ((int)strlen(buf) == max - 1) flush_stdin();
 
-     return (int)strlen(buf);
+    return (int)strlen(buf);
 }
 
 /*   edit_baris_inline()   */
@@ -167,7 +165,7 @@ void render_status_bar(const TextEditor *ed){
 
     /* tampilkan info pencarian jika ada hasil aktif */
     if (ed->jumlah_hasil > 0 && strlen(ed->keyword_terakhir) > 0) {
-        printf(" Cari: \"%s\"  —  %d kemunculan  |  aktif: %d/%d "
+        printf(" Cari: \"%s\"  |  %d kemunculan  |  aktif: %d/%d "
                "(baris %d, kolom %d)\n",
                 ed->keyword_terakhir,
                 ed->jumlah_hasil,
@@ -242,7 +240,6 @@ void render_layar(const TextEditor *ed) {
 }
 
 /*   tampilkan_menu()  */
-
 void tampilkan_menu(const TextEditor *ed) {
     printf("________________________________________________________________________________\n");
     printf(" [1] Tulis baris           [6] Simpan file         [g] Go to line\n");
@@ -262,7 +259,7 @@ void tampilkan_menu(const TextEditor *ed) {
     fflush(stdout);
 }
 
-/* ── render_hasil_cari() ───────────────────────────────────── */
+/* -- render_hasil_cari() ------------------------------------- */
 /* Tampilkan tabel semua posisi kemunculan keyword */
 void render_hasil_cari(const TextEditor *ed) {
     int i;
@@ -281,7 +278,7 @@ void render_hasil_cari(const TextEditor *ed) {
     for (i = 0; i < ed->jumlah_hasil; i++) {
         int   b   = ed->hasil_cari[i].baris;
         int   k   = ed->hasil_cari[i].kolom;
-        const char *isi = (ed->buffer[b] != NULL) ? ed->buffer[b] : "";
+        const char *isi = ed->buffer[b];
         const char *tanda = (i == ed->index_cari) ? "<<" : "  ";
 
         /* tampilkan potongan baris (maks 45 karakter) */
