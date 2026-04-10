@@ -160,7 +160,7 @@ int save_file(TextEditor *ed) {
 
 /*    save_as()   */
 
-int save_as(TextEditor *ed, const char *path) {
+/*int save_as(TextEditor *ed, const char *path) {
     FILE *fp;
     int   i;
     char *ptr;
@@ -188,8 +188,32 @@ int save_as(TextEditor *ed, const char *path) {
     }
 
     for (i = 0; i < ed->jumlah_baris; i++) {
-        /* FIX: hanya tulis \n jika buffer[i] valid */
+        /* FIX: hanya tulis \n jika buffer[i] valid 
         if (ed->buffer[i] != NULL) {
+            fputs(ed->buffer[i], fp);
+            fputc('\n', fp);
+        }
+    }*/
+
+    int save_as(TextEditor *ed, const char *path){
+        FILE *fp;
+        char path_lengkap[MAX_FILEPATH];
+
+        strcpy(path_lengkap, path);
+        if (strstr(path_lengkap, ".") == NULL){
+            strcat(path_lengkap, ".txt");
+        }
+
+        fp = fopen(path_lengkap, "w");
+    if (fp == NULL) {
+        printf("Gagal menyimpan file!\n");
+        return -1;
+    }
+
+    //Tulis isi buffer ke dalam file baris demi baris
+    for (int i = 0; i < ed->jumlah_baris; i++) {
+        if (ed->buffer[i] != NULL) {
+            // Tulis teksnya, lalu tulis enter (\n)
             fputs(ed->buffer[i], fp);
             fputc('\n', fp);
         }
@@ -197,17 +221,17 @@ int save_as(TextEditor *ed, const char *path) {
 
     fclose(fp);
 
-    strncpy(ed->filepath, path, MAX_FILEPATH - 1);
-    ed->filepath[MAX_FILEPATH - 1] = '\0';
-
-    ptr = ambil_nama_file(path);
-    strncpy(ed->filename, ptr ? ptr : path, MAX_FILENAME - 1);
-    ed->filename[MAX_FILENAME - 1] = '\0';
-
+    //Update informasi file di dalam struct editor
+    strcpy(ed->filepath, path_lengkap);
+    strcpy(ed->filename, ambil_nama_file(path_lengkap));
+    
+    // Tanda bintang [*] dihilangkan
     ed->is_modified = 0;
-    printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
+
+    printf("File berhasil disimpan ke: %s\n", path_lengkap);
     return 0;
 }
+
 
 /*   delete_file   */
 

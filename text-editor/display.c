@@ -242,6 +242,7 @@ void render_layar(const TextEditor *ed) {
 }
 
 /*   tampilkan_menu()  */
+
 void tampilkan_menu(const TextEditor *ed) {
     printf("________________________________________________________________________________\n");
     printf(" [1] Tulis baris           [6] Simpan file         [g] Go to line\n");
