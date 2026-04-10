@@ -93,7 +93,7 @@ int open_file(TextEditor *ed, const char *path) {
     return 0;
 }
 
-/* filemanager.c */
+//   save_file   //
 
 int save_file(TextEditor *ed) {
     char path_baru[MAX_FILEPATH];
@@ -159,41 +159,6 @@ int save_file(TextEditor *ed) {
 }
 
 /*    save_as()   */
-
-/*int save_as(TextEditor *ed, const char *path) {
-    FILE *fp;
-    int   i;
-    char *ptr;
-    char  konfirmasi[8];
-
-    if (path == NULL || strlen(path) == 0) {
-        printf("Path tidak boleh kosong.\n");
-        return -1;
-    }
-
-    if (file_ada(path) && strcmp(path, ed->filepath) != 0) {
-        printf("File \"%s\" sudah ada. Timpa? (ya/tidak): ", path);
-        fflush(stdout);
-        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0
-            || strcmp(konfirmasi, "ya") != 0) {
-            printf("Dibatalkan.\n");
-            return -1;
-        }
-    }
-
-    fp = fopen(path, "w");
-    if (fp == NULL) {
-        printf("Error: tidak bisa menulis ke \"%s\".\n", path);
-        return -1;
-    }
-
-    for (i = 0; i < ed->jumlah_baris; i++) {
-        /* FIX: hanya tulis \n jika buffer[i] valid 
-        if (ed->buffer[i] != NULL) {
-            fputs(ed->buffer[i], fp);
-            fputc('\n', fp);
-        }
-    }*/
 
     int save_as(TextEditor *ed, const char *path){
         FILE *fp;
