@@ -322,7 +322,9 @@ static void cmd_simpan(TextEditor *ed) {
             save_as(ed, path_final);
         }
         ed->mode = MODE_PERINTAH;
-    }
+    } else {
+    	ed->mode = MODE_PERINTAH;
+	}
 }
 
 static void cmd_buka_file(TextEditor *ed) {
@@ -342,7 +344,9 @@ static void cmd_buka_file(TextEditor *ed) {
             open_file(ed, path_final);
         }
         ed->mode = MODE_PERINTAH;
-    }
+    } else {
+    	ed->mode = MODE_PERINTAH;
+	}
 }
 
 static void cmd_file_baru(TextEditor *ed) {
