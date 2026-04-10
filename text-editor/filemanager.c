@@ -4,7 +4,6 @@
  * ============================================================ */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "editor.h"
 #include "filemanager.h"
@@ -59,21 +58,38 @@ int open_file(TextEditor *ed, const char *path) {
         return -1;
     }
 
-    bebaskan_buffer(ed);
+    reset_buffer(ed);
 
     while (fgets(baris, sizeof(baris), fp) != NULL && n < MAX_BARIS) {
-        /* FIX: strip \r\n (Windows) maupun \n (Unix) */
         baris[strcspn(baris, "\r\n")] = '\0';
+        
+        char *offset = baris;
+        int sisa = (int)strlen(offset);
+        
+        if (sisa == 0){
+        	ed->buffer[n][0] = '\0';
+        	n++;
+        	continue;
+		}
+        // pecah baris panjang menjadi beberapa baris buffer (word wrap)
+        do{
+        	sisa = (int)strlen(offset);
+ 
+            if (sisa == 0) break;  /* baris kosong, tidak perlu disimpan sebagai wrap */
+ 
+            strncpy(ed->buffer[n], offset, MAX_KOLOM - 1);
+            ed->buffer[n][MAX_KOLOM - 1] = '\0';
+            ed->is_wrapped[n] = (offset != baris) ? 1 : 0;
+            n++;
+ 
+            if (sisa > MAX_KOLOM - 1) {
+                /* masih ada sisa yang belum disimpan, lanjut ke baris berikutnya */
+                offset += MAX_KOLOM - 1;
+            } else {
+                break;  /* semua sudah tersimpan */
+            }
+		} while (n < MAX_BARIS);
 
-        ed->buffer[n] = alokasi_baris(baris);
-        if (ed->buffer[n] == NULL) {
-            fclose(fp);
-            ed->jumlah_baris = n;
-            bebaskan_buffer(ed);
-            printf("Error: kehabisan memori saat membuka file.\n");
-            return -1;
-        }
-        n++;
     }
 
     fclose(fp);
@@ -93,91 +109,56 @@ int open_file(TextEditor *ed, const char *path) {
     return 0;
 }
 
-//   save_file   //
+/*   save_file   */
 
 int save_file(TextEditor *ed) {
     char path_baru[MAX_FILEPATH];
-    char nama_file[MAX_FILENAME];
-    char folder_tujuan[MAX_FILEPATH];
-    char pilihan[4];
 
-    // Jika file belum pernah disimpan sama sekali (pengaman tambahan)
     if (strlen(ed->filepath) == 0) {
-        if (navigasi_path_custom(folder_tujuan)) {
-            printf("Masukkan nama file baru: ");
-            fflush(stdout);
-            if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
-                snprintf(path_baru, sizeof(path_baru), "%s/%s", folder_tujuan, nama_file);
-                return save_as(ed, path_baru);
-            }
-        }
-        return -1;
-    }
+        /* belum punya path minta dari user */
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Nama file baru (misal: catatan.txt): ");
+        fflush(stdout);
 
-    // MENU PILIHAN UNTUK FILE YANG SUDAH ADA
-    ed->mode = MODE_INPUT;
-    render_layar(ed);
-    printf("____________________________________________\n");
-    printf("File aktif: \"%s\"\n", ed->filename);
-    printf("____________________________________________\n");
-    printf("[1] Save    - Timpa file lama (Langsung simpan)\n"); // Fokus perbaikan di sini
-    printf("[2] Save As - Simpan di lokasi/nama baru\n");
-    printf("____________________________________________\n");
-    printf("Pilih (1/2): ");
-    fflush(stdout);
-
-    if (baca_baris_aman(pilihan, sizeof(pilihan)) <= 0) {
-        ed->mode = MODE_PERINTAH;
-        return -1;
-    }
-
-    // opsi 1: Menimpa file
-    if (strcmp(pilihan, "1") == 0) {
-        ed->mode = MODE_PERINTAH;
-        // Langsung panggil save_as menggunakan path yang sudah tersimpan di struct
-        return save_as(ed, ed->filepath); 
-    }
-
-    // opsi 2: Menyimpan sebagai file baru (menggunakan navigator)
-    if (strcmp(pilihan, "2") == 0) {
-        if (navigasi_path_custom(folder_tujuan)) {
-            printf("Masukkan nama file baru: ");
-            fflush(stdout);
-            if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
-                snprintf(path_baru, sizeof(path_baru), "%s/%s", folder_tujuan, nama_file);
-                ed->mode = MODE_PERINTAH;
-                return save_as(ed, path_baru);
-            }
+        if (baca_baris_aman(path_baru, sizeof(path_baru)) <= 0) {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return -1;
         }
         ed->mode = MODE_PERINTAH;
-        return -1;
+        return save_as(ed, path_baru);
     }
 
-    printf("Pilihan tidak valid.\n");
-    ed->mode = MODE_PERINTAH;
-    return -1;
+    return save_as(ed, ed->filepath);
 }
 
 /*    save_as()   */
 
-    int save_as(TextEditor *ed, const char *path){
-        FILE *fp;
-        char path_lengkap[MAX_FILEPATH];
+int save_as(TextEditor *ed, const char *path) {
+    FILE *fp;
+    int   i;
+    char path_lengkap[MAX_FILEPATH];
+    
+    if (path == NULL) return -1;
+    strncpy(path_lengkap, path, MAX_FILEPATH - 1);
+    path_lengkap[MAX_FILEPATH - 1] = '\0';
 
-        strcpy(path_lengkap, path);
-        if (strstr(path_lengkap, ".") == NULL){
-            strcat(path_lengkap, ".txt");
-        }
+    //strcpy(path_lengkap, path);
+    if (strstr(path_lengkap, ".") == NULL){
+        //strcat(path_lengkap, ".txt");
+        strncat(path_lengkap, ".txt", MAX_FILEPATH - strlen(path_lengkap) - 1);
+    }
 
-        fp = fopen(path_lengkap, "w");
+    fp = fopen(path_lengkap, "w");
     if (fp == NULL) {
         printf("Gagal menyimpan file!\n");
         return -1;
     }
 
     //Tulis isi buffer ke dalam file baris demi baris
-    for (int i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i] != NULL) {
+    for (i = 0; i < ed->jumlah_baris; i++) {
+        if (ed->buffer[i][0] != '\0') {
             // Tulis teksnya, lalu tulis enter (\n)
             fputs(ed->buffer[i], fp);
             fputc('\n', fp);
@@ -187,16 +168,22 @@ int save_file(TextEditor *ed) {
     fclose(fp);
 
     //Update informasi file di dalam struct editor
-    strcpy(ed->filepath, path_lengkap);
-    strcpy(ed->filename, ambil_nama_file(path_lengkap));
+    //strcpy(ed->filepath, path_lengkap);
+    //strcpy(ed->filename, ambil_nama_file(path_lengkap));
     
-    // Tanda bintang [*] dihilangkan
-    ed->is_modified = 0;
+    strncpy(ed->filepath, path_lengkap, MAX_FILEPATH - 1);
+    ed->filepath[MAX_FILEPATH - 1] = '\0';
 
-    printf("File berhasil disimpan ke: %s\n", path_lengkap);
+    char *nama = ambil_nama_file(path_lengkap);
+    if (nama == NULL) nama = path_lengkap;
+
+    strncpy(ed->filename, nama, MAX_FILENAME - 1);
+    ed->filename[MAX_FILENAME - 1] = '\0';
+
+    ed->is_modified = 0;
+    printf("Disimpan ke \"%s\" (%d baris).\n", ed->filename, ed->jumlah_baris);
     return 0;
 }
-
 
 /*   delete_file   */
 
@@ -228,7 +215,7 @@ int delete_file(TextEditor *ed) {
     }
 
     printf("File \"%s\" berhasil dihapus.\n", ed->filename);
-    bebaskan_buffer(ed);
+    reset_buffer(ed);
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     return 0;
@@ -327,3 +314,4 @@ int navigasi_path_custom(char *hasil_path) {
         }
     }
 }
+
