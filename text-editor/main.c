@@ -266,28 +266,59 @@ static void cmd_cari_ganti(TextEditor *ed) {
 }
 
 static void cmd_simpan(TextEditor *ed) {
-    // 1. CEK APAKAH FILE SUDAH ADA
-    if (strlen(ed->filepath) > 0) {
-        save_file(ed); 
-        return;
-    }
-
-    // 2. JIKA FILE BENAR-BENAR BARU (Belum ada nama)
+    char pilihan[8];
     char folder_tujuan[MAX_FILEPATH];
     char nama_file[MAX_FILENAME];
     char path_final[MAX_FILEPATH];
 
-    printf("\nFile baru belum disimpan. Silahkan pilih lokasi:\n");
+    // Jika file SUDAH punya nama/path
+    if (strlen(ed->filepath) > 0) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("File sudah memiliki nama: %s\n", ed->filename);
+        printf("  [1] Simpan (Overwrite)\n");
+        printf("  [2] Simpan Sebagai... (Save As)\n");
+        printf("  [b] Batal\n");
+        printf("Pilihan: ");
+        fflush(stdout);
+
+        if (baca_baris_aman(pilihan, sizeof(pilihan)) <= 0) {
+            ed->mode = MODE_PERINTAH;
+            return;
+        }
+
+        if (strcmp(pilihan, "1") == 0) {
+            ed->mode = MODE_PERINTAH;
+            save_file(ed); // Langsung simpan ke path yang ada
+            return;
+        } 
+        else if (strcmp(pilihan, "2") == 0) {
+            // Lanjut ke proses Save As di bawah
+            printf("\n--- Proses Save As ---\n");
+        } 
+        else {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return;
+        }
+    }
+
+    // Bagian ini dijalankan jika file BARU (pilihan 2 tadi juga akan lari ke sini)
+    printf("\nPilih lokasi penyimpanan:\n");
     if (navigasi_path_custom(folder_tujuan)) {
         ed->mode = MODE_INPUT;
         render_layar(ed);
         printf("\nLokasi terpilih: %s\n", folder_tujuan);
-        printf("Masukkan nama file (misal: tugas.txt): ");
+        printf("Masukkan nama file baru (misal: tugas.txt): ");
         fflush(stdout);
 
         if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
-            // Gabungkan folder + / + nama file
-            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            // Gabungkan folder + nama file
+            #ifdef _WIN32
+                snprintf(path_final, sizeof(path_final), "%s\\%s", folder_tujuan, nama_file);
+            #else
+                snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            #endif
             save_as(ed, path_final);
         }
         ed->mode = MODE_PERINTAH;
