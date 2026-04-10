@@ -312,25 +312,52 @@ int main(void) {
 }
 
 static void cmd_simpan(TextEditor *ed) {
-    save_file(ed);
+    // 1. CEK APAKAH FILE SUDAH ADA
+    if (strlen(ed->filepath) > 0) {
+        save_file(ed); 
+        return;
+    }
+
+    // 2. JIKA FILE BENAR-BENAR BARU (Belum ada nama)
+    char folder_tujuan[MAX_FILEPATH];
+    char nama_file[MAX_FILENAME];
+    char path_final[MAX_FILEPATH];
+
+    printf("\nFile baru belum disimpan. Silahkan pilih lokasi:\n");
+    if (navigasi_path_custom(folder_tujuan)) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("\nLokasi terpilih: %s\n", folder_tujuan);
+        printf("Masukkan nama file (misal: tugas.txt): ");
+        fflush(stdout);
+
+        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
+            // Gabungkan folder + / + nama file
+            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            save_as(ed, path_final);
+        }
+        ed->mode = MODE_PERINTAH;
+    }
 }
 
 static void cmd_buka_file(TextEditor *ed) {
-    char path[MAX_PATH];
-    
-    ed->mode = MODE_INPUT;
-    render_layar(ed);
-    printf("Path file: ");
-    fflush(stdout);
-    
-    if (baca_baris_aman(path, sizeof(path)) <= 0) {
-        printf("Dibatalkan.\n");
+    char folder_tujuan[MAX_FILEPATH];
+    char nama_file[MAX_FILENAME];
+    char path_final[MAX_FILEPATH];
+
+    if (navigasi_path_custom(folder_tujuan)) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("\nLokasi terpilih: %s\n", folder_tujuan);
+        printf("Masukkan nama file yang ingin dibuka: ");
+        fflush(stdout);
+
+        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
+            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            open_file(ed, path_final);
+        }
         ed->mode = MODE_PERINTAH;
-        return;
     }
- 
-    open_file(ed, path);
-    ed->mode = MODE_PERINTAH;
 }
 
 static void cmd_file_baru(TextEditor *ed) {
