@@ -11,25 +11,66 @@ void cmd_exit(TextEditor *ed);
 void cmd_exit(TextEditor *ed) {
     char pilihan[8];
 
-    if (ed->is_modified) {
+     if (ed->is_modified) {
         ed->mode = MODE_INPUT;
         render_layar(ed);
-        printf("Ada perubahan belum disimpan. Simpan dulu? (ya/tidak): ");
+        printf("Ada perubahan belum disimpan.\n");
+        printf("  [ya]    = simpan lalu keluar\n");
+        printf("  [tidak] = keluar TANPA menyimpan\n");
+        printf("  [batal] = kembali ke editor\n");
+        printf("Pilihan: ");
         fflush(stdout);
 
-        if (baca_baris_aman(pilihan, sizeof(pilihan)) > 0) {
-            if (strcmp(pilihan, "ya") == 0) {
-                save_file(ed); 
-            } else {
-                ed->mode = MODE_PERINTAH; 
-                return; 
-            }
+        if (baca_baris_aman(pilihan, sizeof(pilihan)) <= 0) {
+            // Gagal baca input, aman: kembali ke editor
+            ed->mode = MODE_PERINTAH;
+            return;
+        }
+
+        if (strcmp(pilihan, "ya") == 0) {
+            save_file(ed);
+            // Lanjut ke exit di bawah
+        } else if (strcmp(pilihan, "tidak") == 0) {
+            // Buang perubahan, langsung keluar
+        } else {
+            // "batal" atau input apapun selain ya/tidak
+            printf("Dibatalkan, kembali ke editor.\n");
+            ed->mode = MODE_PERINTAH;
+            return;
         }
     }
 
-    bebaskan_buffer(ed);
+    reset_buffer(ed);
     printf("\nPROGRAM SELESAI!\n");
     exit(0);
+}
+
+/* Pecah satu string panjang menjadi beberapa insert_baris */
+static int insert_baris_wrap(TextEditor *ed, int *posisi, const char *teks) {
+    const char *offset = teks;
+    int sisa, n = 0;
+
+    do {
+        sisa = (int)strlen(offset);
+        if (sisa == 0) break;
+
+        /* ambil potongan MAX_KOLOM-1 karakter */
+        char potongan[MAX_KOLOM];
+        strncpy(potongan, offset, MAX_KOLOM - 1);
+        potongan[MAX_KOLOM - 1] = '\0';
+
+        if (insert_baris(ed, *posisi, potongan) != 0) return n;
+
+        /* tandai sebagai wrapped kecuali potongan pertama */
+        ed->is_wrapped[*posisi] = (offset != teks) ? 1 : 0;
+
+        (*posisi)++;
+        n++;
+        offset += (sisa > MAX_KOLOM - 1) ? MAX_KOLOM - 1 : sisa;
+
+    } while (sisa > MAX_KOLOM - 1);
+
+    return n;
 }
 
 static void cmd_tulis_baris(TextEditor *ed) {
@@ -45,24 +86,24 @@ static void cmd_tulis_baris(TextEditor *ed) {
     printf("[Mode tulis] Ketik baris demi baris, Enter kosong untuk selesai.\n");
     printf("(Baris akan disisipkan mulai posisi %d)\n\n", posisi + 1);
 
-     while (1) {
-        printf("  [%d] ", posisi + 1);
+    while (1) {
+    	printf("  [%d] ", posisi + 1);
         fflush(stdout);
 
         if (fgets(input, sizeof(input), stdin) == NULL) break;
         input[strcspn(input, "\r\n")] = '\0';
 
         if (strlen(input) == 0) {
-            if (n == 0) printf("  (tidak ada baris yang ditambahkan)\n");
-            else printf("  %d baris ditambahkan.\n", n);
-            break;
+    		if (n == 0) printf("  (tidak ada baris yang ditambahkan)\n");
+        	else printf("  %d baris ditambahkan.\n", n);
+        	break;
         }
 
         if ((int)strlen(input) == sizeof(input) - 1) flush_stdin();
 
-        if (insert_baris(ed, posisi, input) == 0) {
-            posisi++;
-            n++;
+        {
+            int ditambah = insert_baris_wrap(ed, &posisi, input);
+    		n += ditambah;
         }
     }
 
@@ -84,8 +125,7 @@ static void cmd_hapus_baris(TextEditor *ed) {
 
     printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",
         ed->kursor_baris + 1,
-        ed->buffer[ed->kursor_baris] ? 
-        ed->buffer[ed->kursor_baris] : "");
+        ed->buffer[ed->kursor_baris]);
     fflush(stdout);
 
     {
@@ -128,8 +168,7 @@ static void cmd_hapus_baris(TextEditor *ed) {
 }
 
 static void cmd_edit_baris(TextEditor *ed) {
-    char input[MAX_INPUT];
-    char *baris_baru;
+    char input[MAX_KOLOM];
     int ret;
 
     if (ed->jumlah_baris == 0) {
@@ -142,12 +181,9 @@ static void cmd_edit_baris(TextEditor *ed) {
     printf("Edit baris %d: ", ed->kursor_baris + 1);
     fflush(stdout);
 
-    strncpy(input,
-            ed->buffer[ed->kursor_baris] ? 
-            ed->buffer[ed->kursor_baris] : "",
-            sizeof(input) - 1);
-    input[sizeof(input) - 1] = '\0';
-
+    strncpy(input, ed->buffer[ed->kursor_baris], MAX_KOLOM -1);
+	input[MAX_KOLOM -1] = '\0';
+	
     ret = edit_baris_inline(input, sizeof(input), input);
 
     if (ret == 0) {
@@ -156,14 +192,9 @@ static void cmd_edit_baris(TextEditor *ed) {
         return;
     }
 
-    baris_baru = alokasi_baris(input);
-    if (baris_baru == NULL) {
-        ed->mode = MODE_PERINTAH;
-        return;
-    }
-
-    free(ed->buffer[ed->kursor_baris]);
-    ed->buffer[ed->kursor_baris] = baris_baru;
+    strncpy(ed->buffer[ed->kursor_baris], input, MAX_KOLOM - 1);
+    ed->buffer[ed->kursor_baris][MAX_KOLOM - 1] = '\0';
+	
     ed->is_modified = 1;
     ed->mode = MODE_PERINTAH;
     reset_hasil_cari(ed);
@@ -202,7 +233,7 @@ static void cmd_cari(TextEditor *ed) {
 }
 
 static void cmd_cari_ganti(TextEditor *ed) {
-    char cari[256], ganti[MAX_INPUT];
+    char cari[256], ganti[MAX_KOLOM];
 
     ed->mode = MODE_INPUT;
     render_layar(ed);
@@ -234,10 +265,80 @@ static void cmd_cari_ganti(TextEditor *ed) {
     flush_stdin();
 }
 
-static void cmd_simpan(TextEditor *ed);
-static void cmd_buka_file(TextEditor *ed);
-static void cmd_file_baru(TextEditor *ed);
-static void cmd_hapus_file(TextEditor *ed);
+static void cmd_simpan(TextEditor *ed) {
+    // 1. CEK APAKAH FILE SUDAH ADA
+    if (strlen(ed->filepath) > 0) {
+        save_file(ed); 
+        return;
+    }
+
+    // 2. JIKA FILE BENAR-BENAR BARU (Belum ada nama)
+    char folder_tujuan[MAX_FILEPATH];
+    char nama_file[MAX_FILENAME];
+    char path_final[MAX_FILEPATH];
+
+    printf("\nFile baru belum disimpan. Silahkan pilih lokasi:\n");
+    if (navigasi_path_custom(folder_tujuan)) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("\nLokasi terpilih: %s\n", folder_tujuan);
+        printf("Masukkan nama file (misal: tugas.txt): ");
+        fflush(stdout);
+
+        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
+            // Gabungkan folder + / + nama file
+            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            save_as(ed, path_final);
+        }
+        ed->mode = MODE_PERINTAH;
+    }
+}
+
+static void cmd_buka_file(TextEditor *ed) {
+    char folder_tujuan[MAX_FILEPATH];
+    char nama_file[MAX_FILENAME];
+    char path_final[MAX_FILEPATH];
+
+    if (navigasi_path_custom(folder_tujuan)) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("\nLokasi terpilih: %s\n", folder_tujuan);
+        printf("Masukkan nama file yang ingin dibuka: ");
+        fflush(stdout);
+
+        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
+            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
+            open_file(ed, path_final);
+        }
+        ed->mode = MODE_PERINTAH;
+    }
+}
+
+static void cmd_file_baru(TextEditor *ed) {
+    char konfirmasi[8];
+    
+    if (ed->is_modified) {
+        ed->mode = MODE_INPUT;
+        render_layar(ed);
+        printf("Ada perubahan belum disimpan. Buat file baru? (ya/tidak): ");
+        fflush(stdout);
+        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0 || strcmp(konfirmasi, "ya") != 0) {
+            printf("Dibatalkan.\n");
+            ed->mode = MODE_PERINTAH;
+            return;
+        }
+        ed->mode = MODE_PERINTAH;
+    }
+    
+    reset_buffer(ed);
+    ed->filepath[0] = '\0';
+    ed->filename[0] = '\0';
+    printf("Dokumen baru siap.\n");
+}
+
+static void cmd_hapus_file(TextEditor *ed) {
+    delete_file(ed);
+}
 
 void proses_perintah(TextEditor *ed, int pilihan) {
    switch (pilihan) {
@@ -310,78 +411,3 @@ int main(void) {
  
     return 0;
 }
-
-static void cmd_simpan(TextEditor *ed) {
-    // 1. CEK APAKAH FILE SUDAH ADA
-    if (strlen(ed->filepath) > 0) {
-        save_file(ed); 
-        return;
-    }
-
-    // 2. JIKA FILE BENAR-BENAR BARU (Belum ada nama)
-    char folder_tujuan[MAX_FILEPATH];
-    char nama_file[MAX_FILENAME];
-    char path_final[MAX_FILEPATH];
-
-    printf("\nFile baru belum disimpan. Silahkan pilih lokasi:\n");
-    if (navigasi_path_custom(folder_tujuan)) {
-        ed->mode = MODE_INPUT;
-        render_layar(ed);
-        printf("\nLokasi terpilih: %s\n", folder_tujuan);
-        printf("Masukkan nama file (misal: tugas.txt): ");
-        fflush(stdout);
-
-        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
-            // Gabungkan folder + / + nama file
-            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
-            save_as(ed, path_final);
-        }
-        ed->mode = MODE_PERINTAH;
-    }
-}
-
-static void cmd_buka_file(TextEditor *ed) {
-    char folder_tujuan[MAX_FILEPATH];
-    char nama_file[MAX_FILENAME];
-    char path_final[MAX_FILEPATH];
-
-    if (navigasi_path_custom(folder_tujuan)) {
-        ed->mode = MODE_INPUT;
-        render_layar(ed);
-        printf("\nLokasi terpilih: %s\n", folder_tujuan);
-        printf("Masukkan nama file yang ingin dibuka: ");
-        fflush(stdout);
-
-        if (baca_baris_aman(nama_file, sizeof(nama_file)) > 0) {
-            snprintf(path_final, sizeof(path_final), "%s/%s", folder_tujuan, nama_file);
-            open_file(ed, path_final);
-        }
-        ed->mode = MODE_PERINTAH;
-    }
-}
-
-static void cmd_file_baru(TextEditor *ed) {
-    char konfirmasi[8];
-    
-    if (ed->is_modified) {
-        ed->mode = MODE_INPUT;
-        render_layar(ed);
-        printf("Ada perubahan belum disimpan. Buat file baru? (ya/tidak): ");
-        fflush(stdout);
-        if (baca_baris_aman(konfirmasi, sizeof(konfirmasi)) <= 0 || strcmp(konfirmasi, "ya") != 0) {
-            printf("Dibatalkan.\n");
-            ed->mode = MODE_PERINTAH;
-            return;
-        }
-        ed->mode = MODE_PERINTAH;
-    }
-    
-    bebaskan_buffer(ed);
-    ed->filepath[0] = '\0';
-    ed->filename[0] = '\0';
-    printf("Dokumen baru siap.\n");
-}
-
-static void cmd_hapus_file(TextEditor *ed) {
-      delete_file(ed);
-  }
