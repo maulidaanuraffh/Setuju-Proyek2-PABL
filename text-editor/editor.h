@@ -5,7 +5,8 @@
 #ifndef EDITOR_H
 
 #define EDITOR_H
-#define MAX_BARIS 500
+#define MAX_BARIS 100
+#define MAX_KOLOM 101
 #define MAX_FILEPATH 300
 #define MAX_INPUT 4096
 #define MAX_FILENAME 100
@@ -21,7 +22,7 @@ typedef struct {
 
 // struct utama
 typedef struct {
-    char *buffer[MAX_BARIS];
+    char buffer[MAX_BARIS][MAX_KOLOM];
     int   jumlah_baris;
     char  filepath[MAX_FILEPATH];
     char  filename[MAX_FILENAME];
@@ -30,7 +31,7 @@ typedef struct {
     int   kursor_kolom;
     int   mode;           
     int   show_line_num;
-
+    int   is_wrapped[MAX_BARIS];
     HasilCari  hasil_cari[MAX_HASIL];
     int jumlah_hasil;
     int index_cari;
@@ -38,12 +39,10 @@ typedef struct {
 } TextEditor;
 
 void init_editor(TextEditor *ed);
-void bebaskan_buffer(TextEditor *ed);
-char *alokasi_baris(const char *teks);
+void reset_buffer(TextEditor *ed);
+
 int insert_baris(TextEditor *ed, int posisi, const char *isi);
 int delete_baris(TextEditor *ed, int posisi);
-// int insert_karakter(TextEditor *ed, int baris, int kolom, char c);
-// int delete_karakter(TextEditor *ed, int baris, int kolom);
 int go_to_line(TextEditor *ed, int nomor);
 
 int find_teks(TextEditor *ed, const char *keyword);
