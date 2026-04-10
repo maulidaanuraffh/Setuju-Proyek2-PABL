@@ -10,7 +10,7 @@
 void init_editor(TextEditor *ed) {
     int i;
     for (i = 0; i < MAX_BARIS; i++) 
-    ed->buffer[i] = NULL;
+    ed->buffer[i][0] = '\0';
     ed->jumlah_baris = 0;
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
@@ -24,14 +24,9 @@ void init_editor(TextEditor *ed) {
     ed->keyword_terakhir[0] = '\0';
 }
 
-void bebaskan_buffer(TextEditor *ed) {
+void reset_buffer(TextEditor *ed) {
     int i;
-    for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i] != NULL) {
-            free(ed->buffer[i]);
-            ed->buffer[i] = NULL;
-        }
-    }
+    for (i = 0; i < ed->jumlah_baris; i++) ed->buffer[i][0] = '\0';
     ed->jumlah_baris = 0;
     ed->is_modified = 0;
     ed->kursor_baris = 0;
@@ -39,6 +34,7 @@ void bebaskan_buffer(TextEditor *ed) {
     ed->jumlah_hasil = 0;
     ed->index_cari = 0;
     ed->keyword_terakhir[0] = '\0';
+    for (i = 0; i < MAX_BARIS; i++) ed->is_wrapped[i] = 0;
 }
 
 void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
@@ -47,24 +43,8 @@ void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar h
     ed->keyword_terakhir[0] = '\0';
 }
 
-char *alokasi_baris(const char *teks) {
-    size_t len;
-    char  *hasil;
-
-    if (teks == NULL) return NULL;
-    len   = strlen(teks);
-    hasil = (char *)malloc(len + 1);
-    if (hasil == NULL) {
-        fprintf(stderr, "Error: gagal alokasi memori baris.\n");
-        return NULL;
-    }
-    strcpy(hasil, teks);
-    return hasil;
-}
-
 int insert_baris(TextEditor *ed, int posisi, const char *isi) {
     int   i;
-    char *baris_baru;
 
     if (ed->jumlah_baris >= MAX_BARIS) {
         printf("Dokumen penuh (%d baris maksimum).\n", MAX_BARIS);
@@ -75,13 +55,18 @@ int insert_baris(TextEditor *ed, int posisi, const char *isi) {
         return -1;
     }
 
-    baris_baru = alokasi_baris(isi ? isi : "");
-    if (baris_baru == NULL) return -1;
-
-    // geser dari bawah ke atas 
+   // geser dari bawah ke atas 
     for (i = ed->jumlah_baris; i > posisi; i--)
-    ed->buffer[i] = ed->buffer[i - 1];
-    ed->buffer[posisi] = baris_baru;
+    memcpy(ed->buffer[i], ed->buffer[i - 1], MAX_KOLOM);
+ 
+    //isi baris baru di posisi yang sudah dikosongkan 
+    if (isi != NULL) {
+        strncpy(ed->buffer[posisi], isi, MAX_KOLOM - 1);
+        ed->buffer[posisi][MAX_KOLOM - 1] = '\0'; 
+    } else {
+        ed->buffer[posisi][0] = '\0'; 
+    }
+
     ed->jumlah_baris++;
     ed->is_modified  = 1;
     ed->kursor_baris = posisi;
@@ -102,12 +87,10 @@ int delete_baris(TextEditor *ed, int posisi) {
         return -1;
     }
 
-    free(ed->buffer[posisi]);
-    ed->buffer[posisi] = NULL;
-
     for (i = posisi; i < ed->jumlah_baris - 1; i++)
-    ed->buffer[i] = ed->buffer[i + 1];
-    ed->buffer[ed->jumlah_baris - 1] = NULL;
+    memcpy(ed->buffer[i], ed->buffer[i + 1], MAX_KOLOM);
+    
+    ed->buffer[ed->jumlah_baris - 1][0] = '\0';
     ed->jumlah_baris--;
     ed->is_modified = 1;
 
@@ -118,57 +101,7 @@ int delete_baris(TextEditor *ed, int posisi) {
     reset_hasil_cari(ed);
     return 0;
 }
-
-// int insert_karakter(TextEditor *ed, int baris, int kolom, char c) {
-//     char *buf, *tmp;
-//     size_t len;
-
-//     if (baris < 0 || baris >= ed->jumlah_baris) return -1;
-//     buf = ed->buffer[baris];
-//     len = strlen(buf);
-//     if (kolom < 0 || kolom > (int)len) return -1;
-
-//     tmp = (char *)realloc(buf, len + 2);
-//     if (tmp == NULL) { 
-//         fprintf(stderr, "Error: realloc gagal.\n"); 
-//         return -1; 
-//     }
-//     ed->buffer[baris] = tmp;
-
-//     memmove(&tmp[kolom + 1], &tmp[kolom], len - kolom + 1);
-//     tmp[kolom] = c;
-
-//     ed->is_modified = 1;
-//     ed->kursor_kolom = kolom + 1;
-//     return 0;
-// }
-
-// int delete_karakter(TextEditor *ed, int baris, int kolom) {
-//     char *buf, *tmp;
-//     size_t len;
-//     char *buf_atas, *gabung;
-//     int i;
-
-//     if (baris < 0 || baris >= ed->jumlah_baris) return -1;
-//     buf = ed->buffer[baris];
-//     len = strlen(buf);
-
-//     // hapus karakter di tengah/akhir baris
-//     if (kolom > 0 && kolom <= (int)len) {
-//         // geser sisa karakter ke kiri untuk menimpa karakter yang dihapus
-//         memmove(&buf[kolom - 1], &buf[kolom], len - kolom + 1);
-//         // sesuaikan ukuran memori setelah karakter hilang
-//         tmp = (char *)realloc(buf, len); 
-//         if (tmp != NULL) ed->buffer[baris] = tmp;
-
-//         ed->kursor_kolom = kolom - 1; 
-//         ed->is_modified  = 1;
-//         return 0;
-//     }
-
-//     return -1;
-// }
-       
+   
 int find_teks(TextEditor *ed, const char *keyword) {
     int i;
     size_t klen;
@@ -190,7 +123,7 @@ int find_teks(TextEditor *ed, const char *keyword) {
     // menelusuri baris demi baris
     for (i = 0; i < ed->jumlah_baris && ed->jumlah_hasil < MAX_HASIL; i++) {
         baris = ed->buffer[i];
-        if (baris == NULL) continue; // skip baris kosong
+        if (baris[0] == '\0') continue; // skip baris kosong
 
         ptr = baris;
         // mencari keyword di baris yg sedang aktif
@@ -239,10 +172,11 @@ void find_next(TextEditor *ed) {
 }
 
 int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
-    int i, count = 0;
+    int used, i, count = 0;
     size_t len_cari, len_ganti;
-    char *src, *pos, *hasil;
-    size_t cap, used, prefix;
+    char *src, *pos;
+    char tmp_baris[MAX_KOLOM]; //buffer sementara di stack
+    size_t prefix;
 
     // memastikan kata yang dicari tidak null
     if (cari == NULL || strlen(cari) == 0) return -1;
@@ -254,51 +188,51 @@ int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
     len_ganti = strlen(ganti);
 
     for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i] == NULL) continue;
+        if (ed->buffer[i][0] == '\0') continue;
         if (strstr(ed->buffer[i], cari) == NULL) continue;
 
-        // menyiapkan buffer hasil utk menampung teks baru
-        cap = strlen(ed->buffer[i]) * 2 + 64; // alokasi buffer hasil di heap dengan kapasitas awal 2x panjang baris + margin 64 byte
-        hasil = (char *)malloc(cap);
-        if (hasil == NULL) return -1;
+        // bsngun baris hasil di tmp_baris
+        tmp_baris[0] = '\0';
         used = 0;
         src = ed->buffer[i]; // menunjuk ke posisi baca saat ini di baris asli
         // cari dan ganti semua kemunculan berikutnya
         while ((pos = strstr(src, cari)) != NULL) {
             prefix = (size_t)(pos - src); // menghitungg pjg teks sblm kemunculan kata yg ingin diganti
 
-            // memastikan buffer hasil cukup utk menampung prefix dan kata pengganti
-            while (used + prefix + len_ganti + 1 >= cap) {
-                char *tmp;
-                cap *= 2;
-                tmp = (char *)realloc(hasil, cap);
-                if (tmp == NULL) { free(hasil); return -1; }
-                hasil = tmp;
-            }
-            // menyalin teks sebelum keyword yang ditemukan
-            memcpy(hasil + used, src, prefix);
-            used += prefix;
-            // menyalin kata pengganti ke buffer hasil
-            memcpy(hasil + used, ganti, len_ganti);
-            used += len_ganti;
-            // geser posisi baca melewati kemunculan keyword yang baru diganti
-            src = pos + len_cari;
+            // cek apa hasil masih muat di MAX_KOLOM
+           if (used + (int)prefix + (int)len_ganti >= MAX_KOLOM - 1) {
+                // hasil akan melebihi kapasitas baris
+                printf("Peringatan: hasil replace di baris %d melebihi %d karakter, dipotong.\n",
+                    i + 1, MAX_KOLOM - 1);
+                break; 
+        	}
+        	
+        	// salin teks sebelum kemunculan keyword
+            memcpy(tmp_baris + used, src, prefix);
+            used += (int)prefix;
+ 
+            // salin teks pengganti 
+            memcpy(tmp_baris + used, ganti, len_ganti);
+            used += (int)len_ganti;
+ 
+            src = pos + len_cari; // geser posisi baca melewati kemunculan
             count++;
-        }
-
+		}
+        	
         // menyalin sisa teks di baris tsb setelah kemunculan terakhir kata yg dicari
         prefix = strlen(src);
-        while (used + prefix + 1 >= cap) {
-            char *tmp;
-            cap *= 2;
-            tmp = (char *)realloc(hasil, cap);
-            if (tmp == NULL) { free(hasil); return -1; }
-            hasil = tmp;
+        if (used + (int)prefix < MAX_KOLOM - 1) {
+            memcpy(tmp_baris + used, src, prefix + 1); /* +1 untuk null terminator */
+            used += (int)prefix;
+        } else {
+            // potong jika tdk muat
+            memcpy(tmp_baris + used, src, MAX_KOLOM - 1 - used);
+            tmp_baris[MAX_KOLOM - 1] = '\0';
         }
-        memcpy(hasil + used, src, prefix + 1); // +1 utk menyertakan null terminator
-        // bebaskan memori baris lama dan ganti dengan baris baru hasil modifikasi
-        free(ed->buffer[i]);
-        ed->buffer[i] = hasil;
+ 
+        // salin hasil kembali ke buffer[i]
+        strncpy(ed->buffer[i], tmp_baris, MAX_KOLOM - 1);
+        ed->buffer[i][MAX_KOLOM - 1] = '\0';
     }
 
     if (count > 0) {
@@ -318,7 +252,7 @@ void word_count(const TextEditor *ed) {
     unsigned char c;
 
     for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i] == NULL) continue;
+        if (ed->buffer[i][0] == '\0') continue;
         j = 0;
         // membaca karakter satu per satu hingga bertemu null terminator
         while ((c = (unsigned char)ed->buffer[i][j]) != '\0') {
