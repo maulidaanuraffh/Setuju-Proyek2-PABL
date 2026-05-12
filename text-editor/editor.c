@@ -7,11 +7,70 @@
 #include <string.h>
 #include "editor.h"
 
-void init_editor(TextEditor *ed) {
+CharNode *buat_char_node(char c) {
+    CharNode *baru = (CharNode *)malloc(sizeof(CharNode));
+    if (baru == NULL) {
+        fprintf(stderr, "Error: gagal alokasi CharNode.\n");
+        return NULL;
+    }
+    baru->data = c;
+    baru->prev_char = NULL;
+    baru->next_char = NULL;
+    return baru;
+}
+
+RowNode *buat_row_node(const char *teks) {
+    RowNode *baris;
+    CharNode *cn;
     int i;
-    for (i = 0; i < MAX_BARIS; i++) 
-    ed->buffer[i][0] = '\0';
-    ed->jumlah_baris = 0;
+    int len;
+
+    baris = (RowNode *)malloc(sizeof(RowNode));
+    if (baris == NULL) {
+        fprintf(stderr, "Error: gagal alokasi RowNode.\n");
+        return NULL;
+    }
+
+    baris->prev_row = NULL;
+    baris->next_row = NULL;
+    baris->head_row = NULL;
+    baris->tail_row = NULL;
+    baris->jml_char = 0;
+
+    if (teks == NULL) teks = "";
+    len = (int)strlen(teks);
+
+    /* buat CharNode satu per satu, sambungkan ke ekor */
+    for (i = 0; i < len; i++) {
+        cn = buat_char_node(teks[i]);
+        if (cn == NULL) {
+            /* gagal di tengah — bebaskan yang sudah dibuat */
+            bebaskan_char_list(baris->head_row);
+            free(baris);
+            return NULL;
+        }
+
+        if (baris->head_row == NULL) {
+            /* karakter pertama */
+            baris->head_row = cn;
+            baris->tail_row   = cn;
+        } else {
+            /* sambung ke ekor */
+            cn->prev_char = baris->tail_row;
+            baris->tail_row->next_char = cn;
+            baris->tail_row = cn;
+        }
+        baris->jml_char++;
+    }
+
+    return baris;
+}
+
+void init_editor(TextEditor *ed) {
+    ed->head = NULL;
+    ed->tail = NULL;
+    ed->kursor_baris = NULL;
+    ed->kursor_kolom = NULL;
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     ed->is_modified = 0;
