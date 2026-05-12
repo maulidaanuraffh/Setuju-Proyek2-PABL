@@ -19,6 +19,17 @@ CharNode *buat_char_node(char c) {
     return baru;
 }
 
+void bebaskan_char_list(CharNode *head) {
+    CharNode *sekarang  = head;
+    CharNode *berikutnya;
+
+    while (sekarang != NULL) {
+        berikutnya = sekarang->next_char;
+        free(sekarang);
+        sekarang = berikutnya;
+    }
+}
+
 RowNode *buat_row_node(const char *teks) {
     RowNode *baris;
     CharNode *cn;
@@ -66,6 +77,46 @@ RowNode *buat_row_node(const char *teks) {
     return baris;
 }
 
+void bebaskan_row_list(RowNode *head) {
+    RowNode *sekarang  = head;
+    RowNode *berikutnya;
+
+    while (sekarang != NULL) {
+        berikutnya = sekarang->next_row;
+
+        /* bebaskan rantai CharNode di dalam baris ini */
+        bebaskan_char_list(sekarang->head_row);
+
+        /* baru bebaskan RowNode-nya */
+        free(sekarang);
+
+        sekarang = berikutnya;
+    }
+}
+
+char *row_ke_string(const RowNode *baris) {
+    char *buf;
+    CharNode *cn;
+    int i;
+
+    if (baris == NULL) return NULL;
+
+    /* alokasi buffer: jml_char + 1 untuk null terminator */
+    buf = (char *)malloc(baris->jml_char + 1);
+    if (buf == NULL) return NULL;
+
+    /* traversal rantai CharNode, salin data ke buffer */
+    cn = baris->head_row;
+    i  = 0;
+    while (cn != NULL) {
+        buf[i++] = cn->data;
+        cn = cn->next_char;
+    }
+    buf[i] = '\0';
+
+    return buf;
+}
+
 void init_editor(TextEditor *ed) {
     ed->head = NULL;
     ed->tail = NULL;
@@ -83,18 +134,6 @@ void init_editor(TextEditor *ed) {
     ed->keyword_terakhir[0] = '\0';
 }
 
-void reset_buffer(TextEditor *ed) {
-    int i;
-    for (i = 0; i < ed->jumlah_baris; i++) ed->buffer[i][0] = '\0';
-    ed->jumlah_baris = 0;
-    ed->is_modified = 0;
-    ed->kursor_baris = 0;
-    ed->kursor_kolom = 0;
-    ed->jumlah_hasil = 0;
-    ed->index_cari = 0;
-    ed->keyword_terakhir[0] = '\0';
-    for (i = 0; i < MAX_BARIS; i++) ed->is_wrapped[i] = 0;
-}
 
 void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
     ed->jumlah_hasil = 0;
