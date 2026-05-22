@@ -7,32 +7,9 @@
 #include <string.h>
 #include "editor.h"
 
-CharNode *buat_char_node(char c) {
-    CharNode *baru = (CharNode *)malloc(sizeof(CharNode));
-    if (baru == NULL) {
-        fprintf(stderr, "Error: gagal alokasi CharNode.\n");
-        return NULL;
-    }
-    baru->data = c;
-    baru->prev_char = NULL;
-    baru->next_char = NULL;
-    return baru;
-}
-
-void bebaskan_char_list(CharNode *head) {
-    CharNode *sekarang  = head;
-    CharNode *berikutnya;
-
-    while (sekarang != NULL) {
-        berikutnya = sekarang->next_char;
-        free(sekarang);
-        sekarang = berikutnya;
-    }
-}
-
+// buat satu RowNode baru dengan isi string yang disalin
 RowNode *buat_row_node(const char *teks) {
     RowNode *baris;
-    CharNode *cn;
     int i;
     int len;
 
@@ -42,91 +19,58 @@ RowNode *buat_row_node(const char *teks) {
         return NULL;
     }
 
-    baris->prev_row = NULL;
-    baris->next_row = NULL;
-    baris->head_row = NULL;
-    baris->tail_row = NULL;
-    baris->jml_char = 0;
-
     if (teks == NULL) teks = "";
     len = (int)strlen(teks);
 
-    /* buat CharNode satu per satu, sambungkan ke ekor */
-    for (i = 0; i < len; i++) {
-        cn = buat_char_node(teks[i]);
-        if (cn == NULL) {
-            /* gagal di tengah — bebaskan yang sudah dibuat */
-            bebaskan_char_list(baris->head_row);
-            free(baris);
-            return NULL;
-        }
-
-        if (baris->head_row == NULL) {
-            /* karakter pertama */
-            baris->head_row = cn;
-            baris->tail_row   = cn;
-        } else {
-            /* sambung ke ekor */
-            cn->prev_char = baris->tail_row;
-            baris->tail_row->next_char = cn;
-            baris->tail_row = cn;
-        }
-        baris->jml_char++;
+    baris->isi = (char *)malloc(len + 1);
+    if(baris->isi == NULL){
+        fprintf(stderr, "Error: gagal alokasi isi baris.\n");
+        free(baris);
+        return NULL;
     }
+    memcpy(baris->isi, teks, len);
+    baris->isi[len] = '\0';
 
+    baris->prev_row = NULL;
+    baris->next_row = NULL;
     return baris;
 }
 
+// bebaskan satu rantai RowNode mulai dari head
 void bebaskan_row_list(RowNode *head) {
     RowNode *sekarang  = head;
     RowNode *berikutnya;
 
     while (sekarang != NULL) {
         berikutnya = sekarang->next_row;
-
-        /* bebaskan rantai CharNode di dalam baris ini */
-        bebaskan_char_list(sekarang->head_row);
-
-        /* baru bebaskan RowNode-nya */
+        free(sekarang->isi);
         free(sekarang);
-
         sekarang = berikutnya;
     }
 }
 
-char *row_ke_string(const RowNode *baris) {
-    char *buf;
-    CharNode *cn;
-    int i;
-
-    if (baris == NULL) return NULL;
-
-    /* alokasi buffer: jml_char + 1 untuk null terminator */
-    buf = (char *)malloc(baris->jml_char + 1);
-    if (buf == NULL) return NULL;
-
-    /* traversal rantai CharNode, salin data ke buffer */
-    cn = baris->head_row;
-    i  = 0;
-    while (cn != NULL) {
-        buf[i++] = cn->data;
-        cn = cn->next_char;
-    }
-    buf[i] = '\0';
-
-    return buf;
+// bebaskan semua baris di editor dan pointer
+void bebaskan_semua_baris(TextEditor *ed){
+    bebaskan_row_list(ed->head);
+    ed->head = NULL;
+    ed->tail = NULL;
+    ed->kursor_ptr = NULL;
+    ed->kursor_baris = 0;
+    ed->kursor_kolom = 0;
+    ed->jumlah_baris = 0;
 }
 
 void init_editor(TextEditor *ed) {
     ed->head = NULL;
     ed->tail = NULL;
-    ed->kursor_baris = NULL;
-    ed->kursor_kolom = NULL;
+    ed->kursor_ptr = NULL;
+    ed->kursor_baris = 0;
+    ed->kursor_kolom = 0;
+    ed->jumlah_baris = 0;
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     ed->is_modified = 0;
-    ed->kursor_baris = 0;
-    ed->kursor_kolom = 0;
+    ed->jumlah_baris = 0; 
     ed->mode = MODE_PERINTAH;
     ed->show_line_num = 1;
     ed->jumlah_hasil = 0;
@@ -134,268 +78,302 @@ void init_editor(TextEditor *ed) {
     ed->keyword_terakhir[0] = '\0';
 }
 
+// cari node di posisi tertentu dengan traversal 2 arah
+RowNode *cari_node(const TextEditor *ed, int posisi) {
+    RowNode *node;
+    int i;
+ 
+    if (posisi < 0 || posisi >= ed->jumlah_baris) return NULL;
+ 
+    if (posisi <= ed->jumlah_baris / 2) {
+        node = ed->head;
+        i = 0;
+        while (i < posisi){
+            node = node->next_row;
+            i++;
+        }
+    } else {
+        node = ed->tail;
+        i = ed->jumlah_baris - 1;
+        while (i > posisi){
+            node = node->prev_row;
+            ;
+        }
+    }
+    return node;
+}
 
-void reset_hasil_cari(TextEditor *ed) { // dipanggil setiap buffer diubah agar hasil cari tdk stale 
+void reset_hasil_cari(TextEditor *ed){
     ed->jumlah_hasil = 0;
     ed->index_cari = 0;
     ed->keyword_terakhir[0] = '\0';
 }
 
 int insert_baris(TextEditor *ed, int posisi, const char *isi) {
-    int   i;
+    RowNode *baris;
+    RowNode *target;
+    RowNode *prev;
 
-    if (ed->jumlah_baris >= MAX_BARIS) {
-        printf("Dokumen penuh (%d baris maksimum).\n", MAX_BARIS);
-        return -1;
-    }
-    if (posisi < 0 || posisi > ed->jumlah_baris) {
-        printf("Posisi tidak valid: %d\n", posisi);
-        return -1;
-    }
-
-   // geser dari bawah ke atas 
-    for (i = ed->jumlah_baris; i > posisi; i--)
-    memcpy(ed->buffer[i], ed->buffer[i - 1], MAX_KOLOM);
+    baris = buat_row_node(isi);
+    if (baris == NULL) return -1;
  
-    //isi baris baru di posisi yang sudah dikosongkan 
-    if (isi != NULL) {
-        strncpy(ed->buffer[posisi], isi, MAX_KOLOM - 1);
-        ed->buffer[posisi][MAX_KOLOM - 1] = '\0'; 
-    } else {
-        ed->buffer[posisi][0] = '\0'; 
+    // KASUS 1: dokumen kosong 
+    if (ed->head == NULL) {
+        ed->head = baris;
+        ed->tail = baris;
     }
-
-    ed->jumlah_baris++;
-    ed->is_modified  = 1;
-    ed->kursor_baris = posisi;
-    ed->kursor_kolom = 0;
-
-    reset_hasil_cari(ed);
-    return 0;
-}
-
-int delete_baris(TextEditor *ed, int posisi) {
-    int i;
-    if (ed->jumlah_baris == 0) {
-        printf("Dokumen sudah kosong.\n");
-        return -1;
+    // KASUS 2: sisip di akhir 
+    else if (posisi == ed->jumlah_baris) {
+        baris->prev_row = ed->tail;
+        ed->tail->next_row = baris;
+        ed->tail = baris;
     }
-    if (posisi < 0 || posisi >= ed->jumlah_baris) {
-        printf("Nomor baris tidak valid: %d\n", posisi + 1);
-        return -1;
-    }
-
-    for (i = posisi; i < ed->jumlah_baris - 1; i++)
-    memcpy(ed->buffer[i], ed->buffer[i + 1], MAX_KOLOM);
-    
-    ed->buffer[ed->jumlah_baris - 1][0] = '\0';
-    ed->jumlah_baris--;
-    ed->is_modified = 1;
-
-    if (ed->kursor_baris >= ed->jumlah_baris && ed->kursor_baris > 0)
-    ed->kursor_baris = ed->jumlah_baris - 1;
-    ed->kursor_kolom = 0;
-
-    reset_hasil_cari(ed);
-    return 0;
-}
-   
-int find_teks(TextEditor *ed, const char *keyword) {
-    int i;
-    size_t klen;
-    char *ptr, *baris;
-
-    // utk reset status pencarian sblmnya
-    ed->jumlah_hasil = 0; // menghapus jml temuan sblmnya
-    ed->index_cari = 0; // mengatur ulang navigasi pencarian
-    ed->keyword_terakhir[0] = '\0'; // mengosongkan memori kata kunci terakhir
-
-    // jika keyword yg dicari tidak ada, pencarian berhenti
-    if (keyword == NULL || strlen(keyword) == 0) return 0;
-
-    // menyimpan keyword ke memori utk fitur find next nanti
-    klen = strlen(keyword); 
-    strncpy(ed->keyword_terakhir, keyword, sizeof(ed->keyword_terakhir) - 1);
-    ed->keyword_terakhir[sizeof(ed->keyword_terakhir) - 1] = '\0';
-    
-    // menelusuri baris demi baris
-    for (i = 0; i < ed->jumlah_baris && ed->jumlah_hasil < MAX_HASIL; i++) {
-        baris = ed->buffer[i];
-        if (baris[0] == '\0') continue; // skip baris kosong
-
-        ptr = baris;
-        // mencari keyword di baris yg sedang aktif
-        while ((ptr = strstr(ptr, keyword)) != NULL) {
-            if (ed->jumlah_hasil >= MAX_HASIL) break; // berhenti jika penampung hasil pencarian sdh penuh
-            // menyimpan posisi baris dan kolom keyword yg ditemukan
-            ed->hasil_cari[ed->jumlah_hasil].baris = i;
-            ed->hasil_cari[ed->jumlah_hasil].kolom = (int)(ptr - baris);
-            ed->jumlah_hasil++;
-            ptr += klen; // geser pointer lanjut mencari kemunculan kata yang sama di baris yang sama
+    // KASUS 3: sisip di awal atau tengah
+    else {
+        target = cari_node(ed, posisi);
+        prev = target->prev_row;
+ 
+        baris->next_row = target;
+        baris->prev_row = prev;
+        target->prev_row = baris;
+ 
+        if (prev != NULL) {
+            prev->next_row = baris;
+        } else {
+            ed->head = baris; // sisip di awal: baris ini akan jadi head 
         }
     }
-    // ketika keyword ditemukan kursor pindah ke lokasi pertama
+ 
+    ed->jumlah_baris++;
+    ed->kursor_ptr = baris;
+    ed->kursor_baris = posisi;
+    ed->kursor_kolom = 0;
+    ed->is_modified = 1;
+    reset_hasil_cari(ed);
+    return 0;
+}
+
+// int delete_baris(TextEditor *ed, int posisi) {
+//     int i;
+//     if (ed->jumlah_baris == 0) {
+//         printf("Dokumen sudah kosong.\n");
+//         return -1;
+//     }
+//     if (posisi < 0 || posisi >= ed->jumlah_baris) {
+//         printf("Nomor baris tidak valid: %d\n", posisi + 1);
+//         return -1;
+//     }
+
+//     for (i = posisi; i < ed->jumlah_baris - 1; i++)
+//     memcpy(ed->buffer[i], ed->buffer[i + 1], MAX_KOLOM);
+    
+//     ed->buffer[ed->jumlah_baris - 1][0] = '\0';
+//     ed->jumlah_baris--;
+//     ed->is_modified = 1;
+
+//     if (ed->kursor_baris >= ed->jumlah_baris && ed->kursor_baris > 0)
+//     ed->kursor_baris = ed->jumlah_baris - 1;
+//     ed->kursor_kolom = 0;
+
+//     reset_hasil_cari(ed);
+//     return 0;
+// }
+   
+int find_teks(TextEditor *ed, const char *keyword) {
+    RowNode *node;
+    int nomor = 0;
+    size_t klen;
+    char *ptr;
+ 
+    ed->jumlah_hasil = 0;
+    ed->index_cari = 0;
+    ed->keyword_terakhir[0] = '\0';
+ 
+    if (keyword == NULL || strlen(keyword) == 0) return 0;
+ 
+    klen = strlen(keyword);
+    strncpy(ed->keyword_terakhir, keyword, sizeof(ed->keyword_terakhir) - 1);
+    ed->keyword_terakhir[sizeof(ed->keyword_terakhir) - 1] = '\0';
+ 
+    // traversal semua baris dari head 
+    node = ed->head;
+    while (node != NULL && ed->jumlah_hasil < MAX_HASIL) {
+        if (node->isi == NULL || node->isi[0] == '\0'){
+            ptr = node->isi;
+
+            while ((ptr = strstr(ptr, keyword)) != NULL) {
+                if (ed->jumlah_hasil >= MAX_HASIL) break;
+                ed->hasil_cari[ed->jumlah_hasil].baris = node;
+                ed->hasil_cari[ed->jumlah_hasil].nomor_baris = nomor;
+                ed->hasil_cari[ed->jumlah_hasil].kolom = (int)(ptr - node->isi);
+                ed->jumlah_hasil++;
+                ptr += klen;
+            }
+        }
+    node = node->next_row; // pindah ke baris berikutnya
+    nomor++; 
+    }
+ 
     if (ed->jumlah_hasil > 0) {
-        ed->kursor_baris = ed->hasil_cari[0].baris;
+        ed->kursor_ptr = ed->hasil_cari[0].baris;
+        ed->kursor_baris = ed->hasil_cari[0].nomor_baris;
         ed->kursor_kolom = ed->hasil_cari[0].kolom;
         printf("Ditemukan %d kemunculan \"%s\".\n", ed->jumlah_hasil, keyword);
     } else {
         printf("Teks \"%s\" tidak ditemukan.\n", keyword);
     }
-
+ 
     return ed->jumlah_hasil;
 }
-
+ 
 void find_next(TextEditor *ed) {
     HasilCari *h;
-
+ 
     if (ed->jumlah_hasil == 0) {
         printf("Tidak ada hasil pencarian aktif. Gunakan fitur find text dulu.\n");
         return;
     }
-
-    ed->index_cari++; // maju ke hasil berikutnya
-    // jika sdh sampai hasil terakhir, balik lagi ke hasil pertama
-    if (ed->index_cari >= ed->jumlah_hasil) { 
-        ed->index_cari = 0;
-    }
-    // ambil koordinat dari array hasil_cari berdasarkan indeks
+ 
+    ed->index_cari++;
+    if (ed->index_cari >= ed->jumlah_hasil) ed->index_cari = 0;
+ 
     h = &ed->hasil_cari[ed->index_cari];
-    ed->kursor_baris = h->baris;
+    ed->kursor_ptr = h->baris;
+    ed->kursor_baris = h->nomor_baris;
     ed->kursor_kolom = h->kolom;
-    // menampilkan informasi urutan temuan
+ 
     printf("Kemunculan %d/%d: baris %d, kolom %d\n",
-        ed->index_cari + 1, ed->jumlah_hasil, // ditambah 1 krn tampilan untuk user dimulai dari 1 bkn 0
-        h->baris + 1, h->kolom + 1);
+           ed->index_cari + 1, ed->jumlah_hasil,
+           h->nomor_baris + 1, h->kolom + 1);
 }
 
-int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
-    int used, i, count = 0;
-    size_t len_cari, len_ganti;
-    char *src, *pos;
-    char tmp_baris[MAX_KOLOM]; //buffer sementara di stack
-    size_t prefix;
+// int replace_teks(TextEditor *ed, const char *cari, const char *ganti) {
+//     int used, i, count = 0;
+//     size_t len_cari, len_ganti;
+//     char *src, *pos;
+//     char tmp_baris[MAX_KOLOM]; //buffer sementara di stack
+//     size_t prefix;
 
-    // memastikan kata yang dicari tidak null
-    if (cari == NULL || strlen(cari) == 0) return -1;
-    // jika pengganti null, anggap sebagai string kosong (menghapus kata)
-    if (ganti == NULL) ganti = "";
+//     // memastikan kata yang dicari tidak null
+//     if (cari == NULL || strlen(cari) == 0) return -1;
+//     // jika pengganti null, anggap sebagai string kosong (menghapus kata)
+//     if (ganti == NULL) ganti = "";
 
-    // menghitung panjang string yg dicari & string pengganti
-    len_cari = strlen(cari);
-    len_ganti = strlen(ganti);
+//     // menghitung panjang string yg dicari & string pengganti
+//     len_cari = strlen(cari);
+//     len_ganti = strlen(ganti);
 
-    for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i][0] == '\0') continue;
-        if (strstr(ed->buffer[i], cari) == NULL) continue;
+//     for (i = 0; i < ed->jumlah_baris; i++) {
+//         if (ed->buffer[i][0] == '\0') continue;
+//         if (strstr(ed->buffer[i], cari) == NULL) continue;
 
-        // bsngun baris hasil di tmp_baris
-        tmp_baris[0] = '\0';
-        used = 0;
-        src = ed->buffer[i]; // menunjuk ke posisi baca saat ini di baris asli
-        // cari dan ganti semua kemunculan berikutnya
-        while ((pos = strstr(src, cari)) != NULL) {
-            prefix = (size_t)(pos - src); // menghitungg pjg teks sblm kemunculan kata yg ingin diganti
+//         // bsngun baris hasil di tmp_baris
+//         tmp_baris[0] = '\0';
+//         used = 0;
+//         src = ed->buffer[i]; // menunjuk ke posisi baca saat ini di baris asli
+//         // cari dan ganti semua kemunculan berikutnya
+//         while ((pos = strstr(src, cari)) != NULL) {
+//             prefix = (size_t)(pos - src); // menghitungg pjg teks sblm kemunculan kata yg ingin diganti
 
-            // cek apa hasil masih muat di MAX_KOLOM
-           if (used + (int)prefix + (int)len_ganti >= MAX_KOLOM - 1) {
-                // hasil akan melebihi kapasitas baris
-                printf("Peringatan: hasil replace di baris %d melebihi %d karakter, dipotong.\n",
-                    i + 1, MAX_KOLOM - 1);
-                break; 
-        	}
+//             // cek apa hasil masih muat di MAX_KOLOM
+//            if (used + (int)prefix + (int)len_ganti >= MAX_KOLOM - 1) {
+//                 // hasil akan melebihi kapasitas baris
+//                 printf("Peringatan: hasil replace di baris %d melebihi %d karakter, dipotong.\n",
+//                     i + 1, MAX_KOLOM - 1);
+//                 break; 
+//         	}
         	
-        	// salin teks sebelum kemunculan keyword
-            memcpy(tmp_baris + used, src, prefix);
-            used += (int)prefix;
+//         	// salin teks sebelum kemunculan keyword
+//             memcpy(tmp_baris + used, src, prefix);
+//             used += (int)prefix;
  
-            // salin teks pengganti 
-            memcpy(tmp_baris + used, ganti, len_ganti);
-            used += (int)len_ganti;
+//             // salin teks pengganti 
+//             memcpy(tmp_baris + used, ganti, len_ganti);
+//             used += (int)len_ganti;
  
-            src = pos + len_cari; // geser posisi baca melewati kemunculan
-            count++;
-		}
+//             src = pos + len_cari; // geser posisi baca melewati kemunculan
+//             count++;
+// 		}
         	
-        // menyalin sisa teks di baris tsb setelah kemunculan terakhir kata yg dicari
-        prefix = strlen(src);
-        if (used + (int)prefix < MAX_KOLOM - 1) {
-            memcpy(tmp_baris + used, src, prefix + 1); /* +1 untuk null terminator */
-            used += (int)prefix;
-        } else {
-            // potong jika tdk muat
-            memcpy(tmp_baris + used, src, MAX_KOLOM - 1 - used);
-            tmp_baris[MAX_KOLOM - 1] = '\0';
-        }
+//         // menyalin sisa teks di baris tsb setelah kemunculan terakhir kata yg dicari
+//         prefix = strlen(src);
+//         if (used + (int)prefix < MAX_KOLOM - 1) {
+//             memcpy(tmp_baris + used, src, prefix + 1); /* +1 untuk null terminator */
+//             used += (int)prefix;
+//         } else {
+//             // potong jika tdk muat
+//             memcpy(tmp_baris + used, src, MAX_KOLOM - 1 - used);
+//             tmp_baris[MAX_KOLOM - 1] = '\0';
+//         }
  
-        // salin hasil kembali ke buffer[i]
-        strncpy(ed->buffer[i], tmp_baris, MAX_KOLOM - 1);
-        ed->buffer[i][MAX_KOLOM - 1] = '\0';
-    }
+//         // salin hasil kembali ke buffer[i]
+//         strncpy(ed->buffer[i], tmp_baris, MAX_KOLOM - 1);
+//         ed->buffer[i][MAX_KOLOM - 1] = '\0';
+//     }
 
-    if (count > 0) {
-        ed->is_modified = 1;
-        printf("Berhasil mengganti %d kemunculan \"%s\" menjadi \"%s\".\n", count, cari, ganti);
-        reset_hasil_cari(ed);
-    } else {
-        printf("Teks \"%s\" tidak ditemukan.\n", cari);
-    }
+//     if (count > 0) {
+//         ed->is_modified = 1;
+//         printf("Berhasil mengganti %d kemunculan \"%s\" menjadi \"%s\".\n", count, cari, ganti);
+//         reset_hasil_cari(ed);
+//     } else {
+//         printf("Teks \"%s\" tidak ditemukan.\n", cari);
+//     }
 
-    return count;
-}
+//     return count;
+// }
 
-void word_count(const TextEditor *ed) {
-    int i, j;
-    int total_kata = 0, total_char = 0, dalam_kata = 0;
-    unsigned char c;
+// void word_count(const TextEditor *ed) {
+//     int i, j;
+//     int total_kata = 0, total_char = 0, dalam_kata = 0;
+//     unsigned char c;
 
-    for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i][0] == '\0') continue;
-        j = 0;
-        // membaca karakter satu per satu hingga bertemu null terminator
-        while ((c = (unsigned char)ed->buffer[i][j]) != '\0') {
-            total_char++; // menghitung setiap karakter termasuk spasi
-            // cek apakah karakter saat ini adalah pemisah (spasi atau tab)
-            if (c == ' ' || c == '\t') {
-                // spasi ini menandakan akhir dari satu kata
-                if (dalam_kata) { 
-                    total_kata++; 
-                    dalam_kata = 0; // reset status karena sekarang di luar kata
-                } 
-            } else { // jika karakter bukan spasi/tab, berarti skrg berada di dalam kata
-                dalam_kata = 1;
-            }
-            j++;
-        }
-        // penanganan akhir baris, baris berakhir dan masih dalam status di dalam kata maka dihitung sbg 1 kata terakhir di bais tsb
-        if (dalam_kata) { 
-            total_kata++; 
-            dalam_kata = 0; 
-        }
-    }
+//     for (i = 0; i < ed->jumlah_baris; i++) {
+//         if (ed->buffer[i][0] == '\0') continue;
+//         j = 0;
+//         // membaca karakter satu per satu hingga bertemu null terminator
+//         while ((c = (unsigned char)ed->buffer[i][j]) != '\0') {
+//             total_char++; // menghitung setiap karakter termasuk spasi
+//             // cek apakah karakter saat ini adalah pemisah (spasi atau tab)
+//             if (c == ' ' || c == '\t') {
+//                 // spasi ini menandakan akhir dari satu kata
+//                 if (dalam_kata) { 
+//                     total_kata++; 
+//                     dalam_kata = 0; // reset status karena sekarang di luar kata
+//                 } 
+//             } else { // jika karakter bukan spasi/tab, berarti skrg berada di dalam kata
+//                 dalam_kata = 1;
+//             }
+//             j++;
+//         }
+//         // penanganan akhir baris, baris berakhir dan masih dalam status di dalam kata maka dihitung sbg 1 kata terakhir di bais tsb
+//         if (dalam_kata) { 
+//             total_kata++; 
+//             dalam_kata = 0; 
+//         }
+//     }
 
-    printf("Statistik dokumen:\n");
-    printf("  Jumlah baris    : %d\n", ed->jumlah_baris);
-    printf("  Jumlah kata     : %d\n", total_kata);
-    printf("  Jumlah karakter : %d\n", total_char);
-}
+//     printf("Statistik dokumen:\n");
+//     printf("  Jumlah baris    : %d\n", ed->jumlah_baris);
+//     printf("  Jumlah kata     : %d\n", total_kata);
+//     printf("  Jumlah karakter : %d\n", total_char);
+// }
 
-int go_to_line(TextEditor *ed, int nomor) {
-    int idx = nomor - 1; // konversi nomor baris dari sisi user
-    // jika kosong, tidak bisa navigasi
-    if (ed->jumlah_baris == 0) { 
-        printf("Dokumen kosong.\n"); 
-        getchar();
-        return -1; 
-    }
-    // validasi nomor baris
-    if (idx < 0 || idx >= ed->jumlah_baris) {                              
-        printf("Nomor baris %d tidak valid (1-%d).\n", nomor, ed->jumlah_baris);
-        getchar();
-        return -1;
-    }
-    // update posisi kursor
-    ed->kursor_baris = idx; // pindahkan kursor ke baris yang diminta
-    ed->kursor_kolom = 0;   // reset kolom ke awal baris 
-    return 0;      
-}
+// int go_to_line(TextEditor *ed, int nomor) {
+//     int idx = nomor - 1; // konversi nomor baris dari sisi user
+//     // jika kosong, tidak bisa navigasi
+//     if (ed->jumlah_baris == 0) { 
+//         printf("Dokumen kosong.\n"); 
+//         getchar();
+//         return -1; 
+//     }
+//     // validasi nomor baris
+//     if (idx < 0 || idx >= ed->jumlah_baris) {                              
+//         printf("Nomor baris %d tidak valid (1-%d).\n", nomor, ed->jumlah_baris);
+//         getchar();
+//         return -1;
+//     }
+//     // update posisi kursor
+//     ed->kursor_baris = idx; // pindahkan kursor ke baris yang diminta
+//     ed->kursor_kolom = 0;   // reset kolom ke awal baris 
+//     return 0;      
+// }
