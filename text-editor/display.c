@@ -1,6 +1,7 @@
 /* ============================================================
  * display.c 
  * Proyek 2 |  Ikhwan Syahid Azizy (013)
+ *             Maulida Nur Afifah (017) (linkedlist ver)
  * ============================================================ */
 
 #include <stdio.h>
@@ -10,11 +11,7 @@
 
 /*   clear_screen()   */
 void clear_screen(void){
-#ifdef _WIN32
     system("cls");
-#else 
-    system("clear");
-#endif
 }
 
 /*   flush_stdin()   */
@@ -171,7 +168,7 @@ void render_status_bar(const TextEditor *ed){
                 ed->jumlah_hasil,
                 ed->index_cari + 1,
                 ed->jumlah_hasil,
-                ed->hasil_cari[ed->index_cari].baris + 1,
+                ed->hasil_cari[ed->index_cari].nomor_baris + 1,
                 ed->hasil_cari[ed->index_cari].kolom + 1);
     }
 
@@ -180,7 +177,8 @@ void render_status_bar(const TextEditor *ed){
 
 /*   render_layar()   */
 void render_layar(const TextEditor *ed) {
-    int mulai, akhir, i, j;
+    RowNode *node;
+    int mulai, akhir, i;
     int total_halaman, halaman_kini;
 
     clear_screen();
@@ -210,15 +208,23 @@ void render_layar(const TextEditor *ed) {
     if (ed->jumlah_baris == 0) {
         printf("  (dokumen kosong pilih [1] untuk mulai mengetik)\n");
     } else {
-        for (i = mulai; i < akhir; i++) {
+        node = cari_node(ed, mulai);
+        i = mulai;
+        while (i < akhir && node != NULL) {
             const char *penanda = (i == ed->kursor_baris) ? ">" : " ";
-            const char *isi     = ed->buffer[i] ? ed->buffer[i] : "";
-            int         is_hit  = 0;
+            const char *isi = (node->isi != NULL) ? node->isi : "";
+            int is_hit = 0;
+            int j;
 
             /* cek apakah baris ini mengandung hasil cari aktif */
             if (ed->jumlah_hasil > 0) {
-                for (j = 0; j < ed->jumlah_hasil; j++) {
-                    if (ed->hasil_cari[j].baris == i) { is_hit = 1; break; }
+                j = 0; 
+                while (j < ed->jumlah_hasil) {
+                    if (ed->hasil_cari[j].nomor_baris == i) { 
+                        is_hit = 1; 
+                        break; 
+                    }
+                    j++; 
                 }
             }
 
@@ -231,6 +237,8 @@ void render_layar(const TextEditor *ed) {
                        penanda, isi,
                        is_hit ? "  <<" : "");
             }
+            i++;
+            node = node->next_row;
         }
     }
 
@@ -278,7 +286,7 @@ void render_hasil_cari(const TextEditor *ed) {
     for (i = 0; i < ed->jumlah_hasil; i++) {
         int   b   = ed->hasil_cari[i].baris;
         int   k   = ed->hasil_cari[i].kolom;
-        const char *isi = ed->buffer[b];
+        const char *isi = ed->hasil_cari[i].baris->isi;
         const char *tanda = (i == ed->index_cari) ? "<<" : "  ";
 
         /* tampilkan potongan baris (maks 45 karakter) */
