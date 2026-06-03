@@ -201,13 +201,7 @@ int delete_file(TextEditor *ed) {
 void tampilkan_isi_folder(const char *path) {
     char perintah[MAX_FILEPATH + 20];
     printf("\n--- Isi Direktori saat ini ---\n");
-    
-    #ifdef _WIN32
-        snprintf(perintah, sizeof(perintah), "dir /b \"%s\"", path);
-    #else
-        snprintf(perintah, sizeof(perintah), "ls \"%s\"", path);
-    #endif
-    
+        snprintf(perintah, sizeof(perintah), "dir /b \"%s\"", path);   
     system(perintah);
     printf("------------------------------------------\n");
 }
@@ -244,12 +238,7 @@ int navigasi_path_custom(char *hasil_path) {
     char input[MAX_FILENAME];
     
     // AMBIL PATH ABSOLUT SAAT INI
-    #ifdef _WIN32
         if (_getcwd(path_aktif, sizeof(path_aktif)) == NULL) strcpy(path_aktif, ".");
-    #else
-        if (getcwd(path_aktif, sizeof(path_aktif)) == NULL) strcpy(path_aktif, ".");
-    #endif
-
     while (1) {
         clear_screen();
         printf("=== NAVIGATOR DIREKTORI ===\n");
@@ -278,12 +267,7 @@ int navigasi_path_custom(char *hasil_path) {
             potong_ke_parent(path_aktif);
         } 
         else {
-            // Gabungkan folder
-            #ifdef _WIN32
                 strcat(path_aktif, "\\");
-            #else
-                strcat(path_aktif, "/");
-            #endif
             strcat(path_aktif, input);
         }
     }

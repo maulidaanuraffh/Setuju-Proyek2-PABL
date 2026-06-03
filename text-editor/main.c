@@ -40,7 +40,7 @@ void cmd_exit(TextEditor *ed) {
         }
     }
 
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
     printf("\nPROGRAM SELESAI!\n");
     exit(0);
 }
@@ -99,9 +99,7 @@ static void cmd_hapus_baris(TextEditor *ed) {
         return;
     }
 
-    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",
-        ed->kursor_baris + 1,
-        ed->buffer[ed->kursor_baris]);
+    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",ed->kursor_baris + 1, ed->kursor_ptr->isi);
     fflush(stdout);
 
     {
@@ -226,7 +224,7 @@ static void cmd_cari(TextEditor *ed) {
 }
 
 static void cmd_cari_ganti(TextEditor *ed) {
-    char cari[256], ganti[MAX_KOLOM];
+    char cari[256], ganti[MAX_INPUT];
 
     ed->mode = MODE_INPUT;
     render_layar(ed);
@@ -358,7 +356,7 @@ static void cmd_file_baru(TextEditor *ed) {
         ed->mode = MODE_PERINTAH;
     }
     
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     printf("Dokumen baru siap.\n");
