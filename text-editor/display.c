@@ -5,6 +5,7 @@
  * ============================================================ */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "editor.h"
 #include "display.h"
@@ -284,7 +285,7 @@ void render_hasil_cari(const TextEditor *ed) {
            "----------------------------------------");
 
     for (i = 0; i < ed->jumlah_hasil; i++) {
-        int   b   = ed->hasil_cari[i].baris;
+        int   b   = ed->hasil_cari[i].nomor_baris;
         int   k   = ed->hasil_cari[i].kolom;
         const char *isi = ed->hasil_cari[i].baris->isi;
         const char *tanda = (i == ed->index_cari) ? "<<" : "  ";

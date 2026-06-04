@@ -4,7 +4,9 @@
  * ============================================================ */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <direct.h>
 #include "editor.h"
 #include "filemanager.h"
 #include "display.h"
@@ -230,8 +232,6 @@ void potong_ke_parent(char *path) {
     }
 }
 
-
-  #include <direct.h> // Untuk _getcwd
 
 int navigasi_path_custom(char *hasil_path) {
     char path_aktif[MAX_FILEPATH];
