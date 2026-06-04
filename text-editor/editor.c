@@ -11,7 +11,6 @@
 // buat satu RowNode baru dengan isi string yang disalin
 RowNode *buat_row_node(const char *teks) {
     RowNode *baris;
-    int i;
     int len;
 
     baris = (RowNode *)malloc(sizeof(RowNode));
@@ -61,6 +60,8 @@ void bebaskan_semua_baris(TextEditor *ed){
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
     ed->jumlah_baris = 0;
+    ed->is_modified = 0;
+    reset_hasil_cari(ed);
 }
 
 

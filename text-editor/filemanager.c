@@ -72,6 +72,7 @@ int open_file(TextEditor *ed, const char *path) {
 
     fclose(fp);
     ed->is_modified  = 0;
+    ed->kursor_ptr = ed->head;
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
 
