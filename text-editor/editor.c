@@ -11,7 +11,6 @@
 // buat satu RowNode baru dengan isi string yang disalin
 RowNode *buat_row_node(const char *teks) {
     RowNode *baris;
-    int i;
     int len;
 
     baris = (RowNode *)malloc(sizeof(RowNode));
@@ -61,6 +60,8 @@ void bebaskan_semua_baris(TextEditor *ed){
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
     ed->jumlah_baris = 0;
+    ed->is_modified = 0;
+    reset_hasil_cari(ed);
 }
 
 
@@ -104,7 +105,7 @@ RowNode *cari_node(const TextEditor *ed, int posisi) {
         i = ed->jumlah_baris - 1;
         while (i > posisi){
             node = node->prev_row;
-            ;
+            i--;
         }
     }
     return node;
@@ -238,7 +239,7 @@ int find_teks(TextEditor *ed, const char *keyword) {
     // traversal semua baris dari head 
     node = ed->head;
     while (node != NULL && ed->jumlah_hasil < MAX_HASIL) {
-        if (node->isi == NULL || node->isi[0] == '\0'){
+        if (node->isi != NULL && node->isi[0] != '\0'){
             ptr = node->isi;
 
             while ((ptr = strstr(ptr, keyword)) != NULL) {

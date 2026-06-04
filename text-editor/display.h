@@ -6,7 +6,6 @@
 
 #ifndef DISPLAY_H
 #define DISPLAY_H
-#include <conio.h>
 #include "editor.h"
 
 #define TAMPIL_BARIS 22 

@@ -4,7 +4,9 @@
  * ============================================================ */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <direct.h>
 #include "editor.h"
 #include "filemanager.h"
 #include "display.h"
@@ -70,6 +72,7 @@ int open_file(TextEditor *ed, const char *path) {
 
     fclose(fp);
     ed->is_modified  = 0;
+    ed->kursor_ptr = ed->head;
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
 
@@ -230,8 +233,6 @@ void potong_ke_parent(char *path) {
     }
 }
 
-
-  #include <direct.h> // Untuk _getcwd
 
 int navigasi_path_custom(char *hasil_path) {
     char path_aktif[MAX_FILEPATH];

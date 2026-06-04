@@ -326,6 +326,7 @@ static void cmd_buka_file(TextEditor *ed) {
     if (navigasi_path_custom(folder_tujuan)) {
         ed->mode = MODE_INPUT;
         render_layar(ed);
+        tampilkan_isi_folder(folder_tujuan);
         printf("\nLokasi terpilih: %s\n", folder_tujuan);
         printf("Masukkan nama file yang ingin dibuka: ");
         fflush(stdout);
