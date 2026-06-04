@@ -40,37 +40,9 @@ void cmd_exit(TextEditor *ed) {
         }
     }
 
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
     printf("\nPROGRAM SELESAI!\n");
     exit(0);
-}
-
-/* Pecah satu string panjang menjadi beberapa insert_baris */
-static int insert_baris_wrap(TextEditor *ed, int *posisi, const char *teks) {
-    const char *offset = teks;
-    int sisa, n = 0;
-
-    do {
-        sisa = (int)strlen(offset);
-        if (sisa == 0) break;
-
-        /* ambil potongan MAX_KOLOM-1 karakter */
-        char potongan[MAX_KOLOM];
-        strncpy(potongan, offset, MAX_KOLOM - 1);
-        potongan[MAX_KOLOM - 1] = '\0';
-
-        if (insert_baris(ed, *posisi, potongan) != 0) return n;
-
-        /* tandai sebagai wrapped kecuali potongan pertama */
-        ed->is_wrapped[*posisi] = (offset != teks) ? 1 : 0;
-
-        (*posisi)++;
-        n++;
-        offset += (sisa > MAX_KOLOM - 1) ? MAX_KOLOM - 1 : sisa;
-
-    } while (sisa > MAX_KOLOM - 1);
-
-    return n;
 }
 
 static void cmd_tulis_baris(TextEditor *ed) {
@@ -81,7 +53,11 @@ static void cmd_tulis_baris(TextEditor *ed) {
     ed->mode = MODE_INPUT;
     render_layar(ed);
 
-    posisi = (ed->jumlah_baris == 0) ? 0 : ed->kursor_baris + 1;
+    if (ed->jumlah_baris == 0) {
+        posisi = 0;
+    } else {
+        posisi = ed->kursor_baris + 1;
+    } 
 
     printf("[Mode tulis] Ketik baris demi baris, Enter kosong untuk selesai.\n");
     printf("(Baris akan disisipkan mulai posisi %d)\n\n", posisi + 1);
@@ -101,9 +77,9 @@ static void cmd_tulis_baris(TextEditor *ed) {
 
         if ((int)strlen(input) == sizeof(input) - 1) flush_stdin();
 
-        {
-            int ditambah = insert_baris_wrap(ed, &posisi, input);
-    		n += ditambah;
+        if (insert_baris(ed, posisi, input) == 0){
+            posisi++;
+            n++;
         }
     }
 
@@ -123,9 +99,7 @@ static void cmd_hapus_baris(TextEditor *ed) {
         return;
     }
 
-    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",
-        ed->kursor_baris + 1,
-        ed->buffer[ed->kursor_baris]);
+    printf("Hapus baris %d: \"%s\" ? (ya/tidak): ",ed->kursor_baris + 1, ed->kursor_ptr->isi);
     fflush(stdout);
 
     {
@@ -168,33 +142,50 @@ static void cmd_hapus_baris(TextEditor *ed) {
 }
 
 static void cmd_edit_baris(TextEditor *ed) {
-    char input[MAX_KOLOM];
-    int ret;
+    char *input;
+    int len_lama, ret;
+    char *hasil_baru;
 
     if (ed->jumlah_baris == 0) {
         printf("Dokumen kosong.\n");
         return;
     }
+    if (ed->kursor_ptr == NULL) return;
 
     ed->mode = MODE_INPUT;
     render_layar(ed);
     printf("Edit baris %d: ", ed->kursor_baris + 1);
     fflush(stdout);
 
-    strncpy(input, ed->buffer[ed->kursor_baris], MAX_KOLOM -1);
-	input[MAX_KOLOM -1] = '\0';
-	
-    ret = edit_baris_inline(input, sizeof(input), input);
-
-    if (ret == 0) {
-        printf("Dibatalkan.\n");
+    len_lama = (int)strlen(ed->kursor_ptr->isi);
+    input = (char *)malloc(len_lama + MAX_INPUT);
+	if (input == NULL){
+        printf("Error: gagal alokasi buffer edit.\n");
         ed->mode = MODE_PERINTAH;
         return;
     }
 
-    strncpy(ed->buffer[ed->kursor_baris], input, MAX_KOLOM - 1);
-    ed->buffer[ed->kursor_baris][MAX_KOLOM - 1] = '\0';
+    strncpy(input, ed->kursor_ptr->isi, len_lama + MAX_INPUT-1);
+    input[len_lama + MAX_INPUT - 1] = '\0';
 	
+    ret = edit_baris_inline(input, len_lama + MAX_INPUT, input);
+ 
+    if (ret == 0) {
+        printf("Dibatalkan.\n");
+        free(input);
+        ed->mode = MODE_PERINTAH;
+        return;
+    }
+ 
+    // ganti isi baris dengan hasil edit 
+    hasil_baru = (char *)malloc(strlen(input) + 1);
+    if (hasil_baru != NULL) {
+        strcpy(hasil_baru, input);
+        free(ed->kursor_ptr->isi);
+        ed->kursor_ptr->isi = hasil_baru;
+    }
+
+    free(input);
     ed->is_modified = 1;
     ed->mode = MODE_PERINTAH;
     reset_hasil_cari(ed);
@@ -233,7 +224,7 @@ static void cmd_cari(TextEditor *ed) {
 }
 
 static void cmd_cari_ganti(TextEditor *ed) {
-    char cari[256], ganti[MAX_KOLOM];
+    char cari[256], ganti[MAX_INPUT];
 
     ed->mode = MODE_INPUT;
     render_layar(ed);
@@ -365,7 +356,7 @@ static void cmd_file_baru(TextEditor *ed) {
         ed->mode = MODE_PERINTAH;
     }
     
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     printf("Dokumen baru siap.\n");

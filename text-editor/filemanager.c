@@ -58,42 +58,17 @@ int open_file(TextEditor *ed, const char *path) {
         return -1;
     }
 
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
 
-    while (fgets(baris, sizeof(baris), fp) != NULL && n < MAX_BARIS) {
+    while (fgets(baris, sizeof(baris), fp) != NULL) {
         baris[strcspn(baris, "\r\n")] = '\0';
-        
-        char *offset = baris;
-        int sisa = (int)strlen(offset);
-        
-        if (sisa == 0){
-        	ed->buffer[n][0] = '\0';
-        	n++;
-        	continue;
-		}
-        // pecah baris panjang menjadi beberapa baris buffer (word wrap)
-        do{
-        	sisa = (int)strlen(offset);
  
-            if (sisa == 0) break;  /* baris kosong, tidak perlu disimpan sebagai wrap */
- 
-            strncpy(ed->buffer[n], offset, MAX_KOLOM - 1);
-            ed->buffer[n][MAX_KOLOM - 1] = '\0';
-            ed->is_wrapped[n] = (offset != baris) ? 1 : 0;
+            insert_baris(ed, n , baris);
             n++;
- 
-            if (sisa > MAX_KOLOM - 1) {
-                /* masih ada sisa yang belum disimpan, lanjut ke baris berikutnya */
-                offset += MAX_KOLOM - 1;
-            } else {
-                break;  /* semua sudah tersimpan */
-            }
-		} while (n < MAX_BARIS);
 
     }
 
     fclose(fp);
-    ed->jumlah_baris = n;
     ed->is_modified  = 0;
     ed->kursor_baris = 0;
     ed->kursor_kolom = 0;
@@ -137,8 +112,8 @@ int save_file(TextEditor *ed) {
 
 int save_as(TextEditor *ed, const char *path) {
     FILE *fp;
-    int   i;
     char path_lengkap[MAX_FILEPATH];
+    RowNode *sekarang = ed->head;
     
     if (path == NULL) return -1;
     strncpy(path_lengkap, path, MAX_FILEPATH - 1);
@@ -157,12 +132,14 @@ int save_as(TextEditor *ed, const char *path) {
     }
 
     //Tulis isi buffer ke dalam file baris demi baris
-    for (i = 0; i < ed->jumlah_baris; i++) {
-        if (ed->buffer[i][0] != '\0') {
+    while (sekarang != NULL) {
+        if (sekarang->isi != NULL) {
             // Tulis teksnya, lalu tulis enter (\n)
-            fputs(ed->buffer[i], fp);
-            fputc('\n', fp);
+            fputs(sekarang->isi, fp);
+            
         }
+        fputc('\n', fp);
+        sekarang = sekarang->next_row;
     }
 
     fclose(fp);
@@ -215,7 +192,7 @@ int delete_file(TextEditor *ed) {
     }
 
     printf("File \"%s\" berhasil dihapus.\n", ed->filename);
-    reset_buffer(ed);
+    bebaskan_semua_baris(ed);
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     return 0;
@@ -224,13 +201,7 @@ int delete_file(TextEditor *ed) {
 void tampilkan_isi_folder(const char *path) {
     char perintah[MAX_FILEPATH + 20];
     printf("\n--- Isi Direktori saat ini ---\n");
-    
-    #ifdef _WIN32
-        snprintf(perintah, sizeof(perintah), "dir /b \"%s\"", path);
-    #else
-        snprintf(perintah, sizeof(perintah), "ls \"%s\"", path);
-    #endif
-    
+        snprintf(perintah, sizeof(perintah), "dir /b \"%s\"", path);   
     system(perintah);
     printf("------------------------------------------\n");
 }
@@ -259,23 +230,15 @@ void potong_ke_parent(char *path) {
     }
 }
 
-#ifdef _WIN32
+
   #include <direct.h> // Untuk _getcwd
-#else
-  #include <unistd.h> // Untuk getcwd
-#endif
 
 int navigasi_path_custom(char *hasil_path) {
     char path_aktif[MAX_FILEPATH];
     char input[MAX_FILENAME];
     
     // AMBIL PATH ABSOLUT SAAT INI
-    #ifdef _WIN32
         if (_getcwd(path_aktif, sizeof(path_aktif)) == NULL) strcpy(path_aktif, ".");
-    #else
-        if (getcwd(path_aktif, sizeof(path_aktif)) == NULL) strcpy(path_aktif, ".");
-    #endif
-
     while (1) {
         clear_screen();
         printf("=== NAVIGATOR DIREKTORI ===\n");
@@ -304,12 +267,7 @@ int navigasi_path_custom(char *hasil_path) {
             potong_ke_parent(path_aktif);
         } 
         else {
-            // Gabungkan folder
-            #ifdef _WIN32
                 strcat(path_aktif, "\\");
-            #else
-                strcat(path_aktif, "/");
-            #endif
             strcat(path_aktif, input);
         }
     }

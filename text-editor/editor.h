@@ -5,8 +5,6 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#define MAX_BARIS 100
-#define MAX_KOLOM 101
 #define MAX_FILEPATH 300
 #define MAX_INPUT 4096
 #define MAX_FILENAME 100
@@ -14,56 +12,55 @@
 #define MODE_PERINTAH 0 // nilai mode saat editor menunggu pilihan menu
 #define MODE_INPUT 1    // nilai mode saat editor menerima input teks 
 
-typedef struct CharNode {
-    char data;  // satu karakter                  
-    struct CharNode *prev_char;  // pointer ke karakter sebelumnya 
-    struct CharNode *next_char;  // pointer ke karakter berikutnya 
-} CharNode;
-
 typedef struct RowNode {
     struct RowNode *prev_row;  // baris di atasnya           
     struct RowNode *next_row;  // baris di bawahnya          
-    CharNode *head_row; // CharNode pertama di baris  
-    CharNode *tail_row; // CharNode terakhir di baris 
-    int jml_char;     // jumlah karakter
+    char *isi; // string baris, dialokasikan dengan malloc
 } RowNode;
 
 // struct posisi kemunculan keyword
 typedef struct {
-    RowNode *baris;  // RowNode yang mengandung keyword 
-    CharNode *kolom_node; // CharNode awal keyword  
-    int panjang_keyword;  
+    RowNode *baris;  // pointer ke RowNode yang mengandung keyword 
+    int nomor_baris; // nomor baris ke berapa 
+    int kolom; // posisi karakter awal keyword dalam string  
 } HasilCari;
 
 // struct utama
 typedef struct {
-    RowNode *head;
-    RowNode *tail;
-    RowNode *kursor_baris;
-    RowNode *kursor_kolom;
-    char  filepath[MAX_FILEPATH];
-    char  filename[MAX_FILENAME];
-    int   is_modified;
-    int   mode;           
-    int   show_line_num;
-    HasilCari  hasil_cari[MAX_HASIL];
+    RowNode *head; // baris pertama dokumen
+    RowNode *tail; // baris terakhir dokumen
+    RowNode *kursor_ptr; // pointer ke baris aktif utk akses cepat
+    int kursor_baris; // untuk render baris aktif
+    int kursor_kolom; // untuk indeks karakter dalam baris aktif
+    char filepath[MAX_FILEPATH];
+    char filename[MAX_FILENAME];
+    int is_modified;
+    int jumlah_baris;
+    int mode;           
+    int show_line_num;
+    HasilCari hasil_cari[MAX_HASIL];
     int jumlah_hasil;
     int index_cari;
     char keyword_terakhir[256];
 } TextEditor;
-
-CharNode *buat_char_node(char c);
-void bebaskan_char_list(CharNode *head); 
+ 
+// helper utk RowNode
 RowNode *buat_row_node(const char *teks);
 void bebaskan_row_list(RowNode *head);
-char *row_ke_string(const RowNode *baris);
+void bebaskan_semua_baris(TextEditor *ed);
 
+// helper navigasi
+RowNode *cari_node(const TextEditor *ed, int posisi);
+
+// lifecycle editor
 void init_editor(TextEditor *ed);
 
+// operasi baris
 int insert_baris(TextEditor *ed, int posisi, const char *isi);
 int delete_baris(TextEditor *ed, int posisi);
 int go_to_line(TextEditor *ed, int nomor);
 
+// pencarian
 int find_teks(TextEditor *ed, const char *keyword);
 void find_next(TextEditor *ed);
 int replace_teks(TextEditor *ed, const char *cari, const char *ganti);

@@ -1,19 +1,15 @@
 /* ============================================================
  * display.h  
  * Proyek 2 |  Ikhwan Syahid Azizy (013)
+ *             Maulida Nur Afifah (017) (linkedlist ver)
  * ============================================================ */
 
 #ifndef DISPLAY_H
 #define DISPLAY_H
-#ifdef _WIN32
-  #include <conio.h>
-  #include <windows.h>
-#endif
+#include <conio.h>
 #include "editor.h"
 
 #define TAMPIL_BARIS 22 
-#define MODE_PERINTAH      0
-#define MODE_INPUT     1
 #define KEY_ENTER     13
 #define KEY_ESC       27
 #define KEY_BACKSPACE  8
