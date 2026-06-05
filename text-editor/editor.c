@@ -76,7 +76,6 @@ void init_editor(TextEditor *ed) {
     ed->filepath[0] = '\0';
     ed->filename[0] = '\0';
     ed->is_modified = 0;
-    ed->jumlah_baris = 0; 
     ed->mode = MODE_PERINTAH;
     ed->show_line_num = 1;
     ed->jumlah_hasil = 0;
@@ -126,6 +125,7 @@ int insert_baris(TextEditor *ed, int posisi, const char *isi) {
     RowNode *target;
     RowNode *prev;
 
+    if (posisi < 0 || posisi > ed->jumlah_baris) return -1;
     baris = buat_row_node(isi);
     if (baris == NULL) return -1;
  
