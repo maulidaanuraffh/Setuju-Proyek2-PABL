@@ -6,7 +6,7 @@
 
   | NIM | Nama | Kontribusi Utama (after ETS) |
   |-----|------|-----------------|
-  | 013 | Ikhwan Syahid Azizy | `filemanager.c`, `display.c`, `editor.c` (delete, replace, word count, go-to-line) |
+  | 013 | Ikhwan Syahid Azizy | `filemanager.c`, `editor.c` (delete, replace, word count, go-to-line) |
   | 017 | Maulida Nur Afifah | `editor.h`, `editor.c` (linked list, insert, search, find-next), `display.c` (render) |
 
   ---
